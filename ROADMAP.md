@@ -197,9 +197,25 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Real secret store (env vars for now) → M13
 
 ## M13 — Deployment (AWS)
-- [ ] Production Dockerfiles (multi-stage), migrations on release
-- [ ] Managed Postgres + Redis, load balancer, object storage
-- [ ] IaC (Terraform), deploy from CI
+- [x] Multi-stage Dockerfiles (`dev` / `build` / `prod` targets); `prod` is
+      non-root, gunicorn + uvicorn workers, an entrypoint that dispatches
+      serve / migrate / worker / beat
+- [x] Frontend `prod` image: built SPA on nginx (static only, `/healthz`)
+- [x] `docker-compose.prod.yml` — prod images + a `gateway` nginx that mirrors
+      the ALB's `/api/*` vs `/*` path routing
+- [x] Terraform stack in `infra/`: VPC (2 AZ, 1 NAT, S3 endpoint), ALB
+      (optional ACM/Route53), RDS Postgres 16, ElastiCache Redis 7, S3 assets
+      bucket, ECR, 4 ECS services + API CPU autoscaling, CloudWatch alarms
+- [x] Secrets in Secrets Manager (random DB/Redis/JWT), injected via task
+      `secrets`; nothing sensitive in state or git
+- [x] `infra/bootstrap` for the remote-state bucket + lock table
+- [x] GitHub OIDC deploy role; `release.yml` builds + Trivy-scans + pushes to
+      ECR, runs migrations as a one-off task, rolls the services
+- [x] CI `infra` job: `terraform validate` (stack + bootstrap) + `shellcheck`
+- [ ] Actual `terraform apply` to a live account (needs AWS credentials)
+- [ ] Blue/green via CodeDeploy; multi-AZ RDS + Redis replica → later
+- [ ] WAF on the ALB, CloudFront in front of the SPA → later
+- [ ] Redis pub/sub WS fan-out consumer — now needed (multiple API tasks) → M14
 
 ## M14 — Monitoring
 - [ ] Structured logging, request metrics

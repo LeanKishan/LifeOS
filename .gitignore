@@ -32,5 +32,15 @@ Thumbs.db
 *.db
 *.sqlite3
 
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+backend.hcl
+crash.log
+
 # Misc
 *.log

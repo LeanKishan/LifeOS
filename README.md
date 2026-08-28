@@ -24,7 +24,10 @@ and can add tasks, events, and flashcards · **Analytics** — cross-module
 productivity / finance / learning aggregates with CSV & PDF export ·
 **Security pass** — security headers, body-size and write-rate limits, a generic
 error boundary, a production config guard, and dependency scanning in CI
-(see [SECURITY.md](SECURITY.md)).
+(see [SECURITY.md](SECURITY.md)) · **Deployment** — multi-stage images and a
+Terraform stack (`infra/`) that puts the app on AWS ECS Fargate behind an ALB
+with RDS, ElastiCache, S3 and a GitHub-OIDC release pipeline
+(see [infra/README.md](infra/README.md)).
 
 ## Architecture
 
@@ -57,8 +60,9 @@ error boundary, a production config guard, and dependency scanning in CI
 | AI              | Anthropic SDK (`claude-opus-5`), manual tool-use loop |
 | Auth            | JWT access + refresh tokens            |
 | Python tooling  | uv, Ruff, mypy, pytest                 |
-| Containers      | Docker + Docker Compose                |
-| CI              | GitHub Actions                         |
+| Containers      | Docker (multi-stage) + Docker Compose  |
+| Infra           | AWS ECS Fargate · ALB · RDS · ElastiCache · S3 · Terraform |
+| CI / CD         | GitHub Actions · OIDC · Trivy image scan |
 
 ## Prerequisites
 
@@ -95,6 +99,23 @@ the deployment target. If Docker Desktop won't start (it needs hardware
 virtualization / a working WSL2), the Quickstart path above is fully functional
 without it.
 
+For a production-parity run — the same multi-stage `prod` images, a one-off
+migration task, and a `gateway` that path-routes like the ALB:
+
+```bash
+JWT_SECRET=$(openssl rand -hex 32) docker compose -f docker-compose.prod.yml up --build
+# app on http://localhost:8080
+```
+
+## Deploying to AWS
+
+`infra/` is a Terraform stack that runs the app on ECS Fargate behind an ALB,
+with RDS Postgres, ElastiCache Redis, an S3 bucket, ECR, autoscaling, and a
+GitHub-OIDC release pipeline (`.github/workflows/release.yml`) that builds,
+scans, migrates, and rolls the services. See [infra/README.md](infra/README.md)
+for the bootstrap-and-apply steps and [DECISIONS.md](DECISIONS.md) ADR-0023 for
+the topology rationale.
+
 ## Repo layout
 
 ```
@@ -106,13 +127,15 @@ backend/
     api/routes/  one router per feature module
     migrations/  Alembic
   tests/
+  docker/        prod entrypoint (serve / migrate / worker / beat)
 frontend/
   src/
     lib/         API client, query client
     features/    one folder per feature module
     pages/       route-level screens
     components/   shared UI
-infra/           Compose/monitoring extras (grows later)
+  docker/        nginx.conf for the static prod image
+infra/           Terraform (ECS Fargate stack) + bootstrap + compose gateway
 ```
 
 ## Tests

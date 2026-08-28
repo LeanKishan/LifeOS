@@ -1,0 +1,26 @@
+# Copy to terraform.tfvars and adjust. Everything here has a working default
+# except that you'll want a real domain eventually.
+
+region      = "us-east-1"
+project     = "lifeos"
+environment = "prod"
+
+# Leave both empty for an HTTP-only ALB on its AWS DNS name. Set both together
+# for automatic TLS (ACM cert, DNS-validated in the given Route53 zone).
+# domain_name     = "app.example.com"
+# route53_zone_id = "Z0123456789ABCDEFGHIJ"
+
+# Get alerts from the baseline CloudWatch alarms.
+# alarm_email = "you@example.com"
+
+# The repo whose GitHub Actions may assume the deploy role.
+github_repo = "LeanKishan/LifeOS"
+
+# Sizing — the defaults fit comfortably in the AWS free-ish tier.
+api_desired_count = 2
+db_instance_class = "db.t4g.micro"
+redis_node_type   = "cache.t4g.micro"
+
+# Set false in a throwaway environment so `terraform destroy` doesn't stall on
+# the final-snapshot / deletion-protection guards.
+db_deletion_protection = true

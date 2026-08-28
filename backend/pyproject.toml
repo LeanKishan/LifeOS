@@ -21,6 +21,7 @@ dependencies = [
     "pwdlib[argon2]>=0.2.1",
     "python-multipart>=0.0.12",
     "httpx>=0.28",
+    "gunicorn>=23.0",
 ]
 
 [dependency-groups]

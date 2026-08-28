@@ -1,0 +1,5 @@
+# Fill from the `terraform output backend_hcl` of infra/bootstrap, then:
+#   terraform init -backend-config=backend.hcl
+bucket         = "lifeos-tfstate-000000000000"
+dynamodb_table = "lifeos-tfstate"
+region         = "us-east-1"

@@ -397,3 +397,62 @@ PR. Container image scanning lands with the real Dockerfiles in M13.
 `script-src 'self'`; secrets management is env-vars for now (a real secret store
 is M13). See `SECURITY.md` for the full threat model and the self-pentest
 checklist.
+
+## ADR-0023 — Deployment: ECS Fargate + Terraform, one ALB, images from CI
+
+**Decision.** The app runs on **ECS Fargate** in a two-tier VPC: an
+internet-facing ALB in public subnets; `api`, `frontend`, `worker` and `beat`
+tasks plus RDS Postgres 16 and ElastiCache Redis 7 in private subnets, egress
+through a single NAT gateway. **Terraform** (remote state in S3 + a DynamoDB
+lock table, bootstrapped by `infra/bootstrap`) provisions all of it. The
+**frontend** is the built SPA on nginx — static files only. The **ALB** path-
+routes one origin: `/api/*` to the API target group, everything else to the
+frontend. Images are built, scanned (Trivy, fails on `CRITICAL`) and pushed to
+**ECR** by `.github/workflows/release.yml`, which then registers new task-def
+revisions, runs `alembic upgrade head` as a **one-off Fargate task**, and rolls
+the services (`aws ecs update-service` + `wait services-stable`). CI assumes an
+AWS role via **GitHub OIDC** — no long-lived keys.
+
+**Why ECS Fargate over the alternatives.** App Runner is less to wire but also
+less to show and less control (no sidecars, limited networking). EKS is a
+Kubernetes control plane to operate and explain for four small services — all
+cost, no benefit here. Lightsail/PaaS hides exactly the VPC/ALB/IAM/RDS wiring
+that's the point of this milestone. Fargate keeps "no servers to patch" while
+still being real ECS + task definitions + target groups + autoscaling — the
+vocabulary that transfers.
+
+**Why the ALB path-routes instead of the SPA proxying `/api`.** One origin means
+the browser's `Authorization` requests are same-origin, so there's no CORS in
+production and the M12 CSP stays tight. `docker-compose.prod.yml` reproduces this
+with a tiny `gateway` nginx so local prod-parity behaves identically.
+
+**Why migrations are a separate task, not container start.** N API tasks starting
+at once would race on `alembic upgrade`. A single RunTask in the pipeline, gated
+before the service roll, makes the schema change atomic and visible in its own
+log.
+
+**Why `ignore_changes = [task_definition]` on every service.** Terraform owns
+infrastructure; the release pipeline owns which image revision is live. Without
+this they'd fight on every `apply`.
+
+**Why Secrets Manager over SSM Parameter Store.** One JSON secret holds the
+composed `DATABASE_URL` / `REDIS_URL` / broker URLs / `JWT_SECRET`, injected by
+ECS as env vars via the task `secrets` block — never in a task definition, a
+tfvars file, or git. The DB and Redis passwords are `random_password`, so no
+human ever sees them. `ANTHROPIC_API_KEY` is a second secret created empty with
+`ignore_changes` and set out-of-band.
+
+**Why one NAT gateway.** It's the largest single line item (~\$32/mo + data).
+One-per-AZ buys AZ-failure resilience for outbound traffic that a portfolio
+deploy doesn't need; S3 goes over a gateway endpoint to keep report/upload
+bytes off it entirely.
+
+**Local verification limits.** This milestone is infrastructure-as-code: `ci.yml`
+gains an `infra` job (`terraform validate` on the stack and the bootstrap,
+`shellcheck` on the deploy scripts). An actual `terraform apply` needs an AWS
+account and is not part of CI.
+
+**Deferred.** Blue/green (CodeDeploy) instead of rolling; multi-AZ RDS + a Redis
+replica; WAF on the ALB; CloudFront in front of the SPA; the Redis pub/sub WS
+fan-out consumer — now actually needed, since M7's in-process `ConnectionManager`
+only reaches clients on the *same* API task (ADR-0017).

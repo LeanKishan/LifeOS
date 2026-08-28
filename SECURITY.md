@@ -55,9 +55,15 @@ by the token's `sub`.
   can exceed the nominal rate by ~2x. A sliding window / per-account limit is
   the upgrade if it matters.
 - **No account lockout, no MFA, no email verification, no password-reset flow.**
-- **Secrets management** is plain environment variables until M13.
-- **DoS at the network layer**, dependency-confusion, and supply-chain attacks
-  on the build are the platform's job (M13: container scanning, pinned digests).
+- **Secrets management**: in AWS every credential is in Secrets Manager, injected
+  by ECS as an env var and never written to a task definition, Terraform state,
+  or git (ADR-0023). Local dev still uses a plain `.env`.
+- **WAF / network-layer DoS**: not in front of the ALB yet (deferred). Container
+  images are scanned by Trivy in the release pipeline (fails on `CRITICAL`).
+- **Multi-task realtime**: production runs several API tasks; the in-process
+  WebSocket `ConnectionManager` only pushes to clients on the same task until
+  the Redis pub/sub fan-out consumer lands (ADR-0017). Not a confidentiality
+  issue — just missed live updates.
 
 ## Self-pentest checklist
 

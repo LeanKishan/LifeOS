@@ -1,0 +1,75 @@
+name: Release
+
+# Build + scan + push both images, run migrations as a one-off task, then roll
+# the ECS services. Triggered by a version tag, or manually.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # assume the AWS deploy role via OIDC
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  CLUSTER: lifeos-prod
+  ECR_BACKEND: lifeos-prod-backend
+  ECR_FRONTEND: lifeos-prod-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve tags
+        run: |
+          echo "REGISTRY=${{ steps.ecr.outputs.registry }}" >> "$GITHUB_ENV"
+          echo "TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+
+      - name: Build images
+        run: |
+          docker build --target prod \
+            -t "$REGISTRY/$ECR_BACKEND:$TAG" -t "$REGISTRY/$ECR_BACKEND:latest" ./backend
+          docker build --target prod \
+            -t "$REGISTRY/$ECR_FRONTEND:$TAG" -t "$REGISTRY/$ECR_FRONTEND:latest" ./frontend
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.REGISTRY }}/${{ env.ECR_BACKEND }}:${{ env.TAG }}
+          severity: CRITICAL
+          ignore-unfixed: "true"
+          exit-code: "1"
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.REGISTRY }}/${{ env.ECR_FRONTEND }}:${{ env.TAG }}
+          severity: CRITICAL
+          ignore-unfixed: "true"
+          exit-code: "1"
+
+      - name: Push images
+        run: |
+          docker push "$REGISTRY/$ECR_BACKEND:$TAG"
+          docker push "$REGISTRY/$ECR_BACKEND:latest"
+          docker push "$REGISTRY/$ECR_FRONTEND:$TAG"
+          docker push "$REGISTRY/$ECR_FRONTEND:latest"
+
+      - name: Migrate + roll services
+        run: bash .github/scripts/deploy.sh
+        env:
+          BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ env.ECR_BACKEND }}:${{ env.TAG }}
+          FRONTEND_IMAGE: ${{ env.REGISTRY }}/${{ env.ECR_FRONTEND }}:${{ env.TAG }}
