@@ -110,10 +110,17 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Goal progress % → later
 
 ## M7 — Real-time
-- [ ] WebSocket endpoint + connection manager
-- [ ] Live dashboard updates, notifications
-- [ ] Collaborative task updates
-- [ ] Frontend: socket hook, toast notifications
+- [x] `GET /api/ws?token=` — JWT-authed push channel; `ConnectionManager` keyed
+      by user (in-process; Redis fan-out is M8 / ADR-0017)
+- [x] One `http` middleware emits `{type: <channel>}` after any 2xx mutation
+      under a feature prefix — no per-route wiring
+- [x] Frontend `useLiveUpdates` hook: reconnecting socket, invalidates the query
+      key named by each frame; "● live" indicator in the header
+- [x] Collaborative updates: a task moved from one client updates every other
+      client's board with no reload
+- [x] Tests: 6 — manager fan-out is user-scoped, disconnect, WS auth accept/
+      reject, mutation delivers a frame
+- [ ] Toast notifications (need a source — arrives with M9 reminders)
 
 ## M8 — Redis, hard
 - [ ] Dashboard cache with invalidation

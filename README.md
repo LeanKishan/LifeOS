@@ -15,7 +15,8 @@ subtasks / comments, and a drag-and-drop board · **Calendar** — events with
 iCalendar recurrence, reminders, and month / week views · **Finance** — accounts,
 categorised transactions (integer cents), monthly budgets, CSV import, and a
 budget-vs-actual summary · **Learning** — courses with lessons and progress,
-plus SM-2 spaced-repetition flashcards.
+plus SM-2 spaced-repetition flashcards · **Real-time** — a WebSocket push channel
+so a change on one device refreshes the others.
 
 ## Architecture
 

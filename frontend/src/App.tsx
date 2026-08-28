@@ -11,6 +11,7 @@ import { useSummary } from "@/features/finance/queries";
 import { StatCards } from "@/features/jobTracker/StatCards";
 import { useCourses, useReviewCount } from "@/features/learning/queries";
 import { useProjects } from "@/features/projects/queries";
+import { useLiveUpdates } from "@/features/realtime/useLiveUpdates";
 import { api } from "@/lib/api";
 import CalendarPage from "@/pages/CalendarPage";
 import CoursePage from "@/pages/CoursePage";
@@ -51,7 +52,7 @@ const NAV = [
   { to: "/learning", label: "Learning" },
 ];
 
-function Header() {
+function Header({ live }: { live: boolean }) {
   const { status, user, logout } = useAuth();
   const authed = status === "authenticated";
 
@@ -82,6 +83,14 @@ function Header() {
           )}
         </div>
         <div className="flex items-center gap-4 text-sm">
+          {authed && (
+            <span
+              title={live ? "Live updates connected" : "Reconnecting…"}
+              className={live ? "text-emerald-500" : "text-slate-300"}
+            >
+              ● live
+            </span>
+          )}
           <HealthBadge />
           {authed && user && (
             <>
@@ -244,9 +253,12 @@ function Dashboard() {
 }
 
 export default function App() {
+  const { status } = useAuth();
+  const { connected } = useLiveUpdates(status === "authenticated");
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <Header />
+      <Header live={connected} />
       <main className="mx-auto max-w-5xl px-6 py-10">
         <Routes>
           <Route path="/login" element={<LoginPage />} />

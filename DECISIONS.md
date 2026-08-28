@@ -226,3 +226,24 @@ special-cased, ease has a 1.3 floor, a lapse resets the streak). Keeping it a
 pure `(card, quality, today) -> None` makes every case a two-line unit test with
 no database or HTTP. SM-2 itself is chosen because it's well documented and
 "good enough" — swapping in FSRS later is a change to this one function.
+
+## ADR-0017 — Live updates: coarse "channel changed" events, emitted by middleware
+
+**Decision.** The WebSocket carries `{"type": "<channel>"}` frames, where
+`<channel>` is the top-level TanStack Query key for a feature (`projects`,
+`job-tracker`, `calendar`, ...). The client's only reaction is
+`invalidateQueries({ queryKey: [type] })`. One `http` middleware emits the frame
+to the acting user after any 2xx `POST/PUT/PATCH/DELETE` under that feature's
+path prefix — routes and services know nothing about it.
+
+**Why.** "Something in projects changed, refetch what you're showing" is enough
+for a single-user-multi-device app and costs one middleware instead of a
+`publish()` call in ~40 handlers. TanStack Query already de-dupes and only
+refetches queries that are actually mounted. Fine-grained events (which task,
+which field) and an actor id to skip the originating tab are a later refinement
+if payloads get expensive.
+
+**Not done.** The `ConnectionManager` is per-process — a second web worker
+wouldn't see the first's connections. Multi-worker needs the emit to go through
+Redis pub/sub with every worker subscribed; that lands with Redis in M8. The
+interface (`publish(user_id, event)`) stays the same.
