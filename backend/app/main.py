@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.api.routes import auth, health, job_tracker, projects
+from app.api.routes import auth, calendar, health, job_tracker, projects
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -29,6 +29,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix="/api")
     app.include_router(job_tracker.router, prefix="/api")
     app.include_router(projects.router, prefix="/api")
+    app.include_router(calendar.router, prefix="/api")
 
     @app.get("/", tags=["meta"])
     def root() -> dict[str, str]:

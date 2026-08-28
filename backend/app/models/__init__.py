@@ -5,6 +5,7 @@ before Alembic autogenerate runs.
 """
 
 from app.models.base import Base
+from app.models.calendar import Event, Reminder
 from app.models.job_tracker import (
     Application,
     ApplicationStatus,
@@ -30,9 +31,11 @@ __all__ = [
     "BoardColumn",
     "Company",
     "Contact",
+    "Event",
     "Interview",
     "Label",
     "Project",
+    "Reminder",
     "Subtask",
     "Task",
     "TaskComment",
