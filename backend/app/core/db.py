@@ -1,14 +1,28 @@
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Generator
+from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 
 settings = get_settings()
+
+
+@event.listens_for(Engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection: Any, _record: Any) -> None:
+    """SQLite ignores ON DELETE CASCADE / SET NULL unless asked per connection.
+
+    Turning it on makes local SQLite behave like the Postgres used in CI / prod.
+    """
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 def _make_engine() -> Engine:

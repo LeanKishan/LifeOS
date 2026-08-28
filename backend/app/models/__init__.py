@@ -6,6 +6,14 @@ before Alembic autogenerate runs.
 
 from app.models.base import Base
 from app.models.calendar import Event, Reminder
+from app.models.finance import (
+    Account,
+    Bill,
+    Budget,
+    Category,
+    Transaction,
+    TransactionKind,
+)
 from app.models.job_tracker import (
     Application,
     ApplicationStatus,
@@ -25,10 +33,14 @@ from app.models.projects import (
 from app.models.user import User
 
 __all__ = [
+    "Account",
     "Application",
     "ApplicationStatus",
     "Base",
+    "Bill",
     "BoardColumn",
+    "Budget",
+    "Category",
     "Company",
     "Contact",
     "Event",
@@ -40,5 +52,7 @@ __all__ = [
     "Task",
     "TaskComment",
     "TaskPriority",
+    "Transaction",
+    "TransactionKind",
     "User",
 ]
