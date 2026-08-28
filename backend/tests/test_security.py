@@ -82,7 +82,9 @@ def test_unhandled_error_returns_a_generic_500(
         app.dependency_overrides.clear()
 
     assert resp.status_code == 500
-    assert resp.json() == {"detail": "Internal server error"}
+    body = resp.json()
+    assert body["detail"] == "Internal server error"
+    assert body["request_id"]  # correlate with the server log
     assert "secret internal detail" not in resp.text
     assert "RuntimeError" not in resp.text
     assert "Traceback" not in resp.text

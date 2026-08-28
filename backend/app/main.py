@@ -3,13 +3,15 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import sys
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import jwt
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
@@ -28,12 +30,30 @@ from app.api.routes import (
 )
 from app.core.cache import bump_cache_version
 from app.core.config import get_settings
+from app.core.observability import (
+    HTTP_LATENCY,
+    HTTP_REQUESTS,
+    RequestIDMiddleware,
+    configure_logging,
+    get_request_id,
+    init_sentry,
+    render_metrics,
+)
 from app.core.ratelimit import over_limit_retry_after
 from app.core.redis import get_redis
 from app.core.security import decode_token
+from app.realtime.fanout import run_fanout
 from app.realtime.manager import manager, publish
 
 settings = get_settings()
+# Leave pytest's own log capture in place when running under it.
+if "pytest" not in sys.modules:
+    configure_logging(json_logs=settings.log_json, level=settings.log_level)
+init_sentry(
+    settings.sentry_dsn,
+    environment=settings.environment,
+    traces_sample_rate=settings.sentry_traces_sample_rate,
+)
 logger = logging.getLogger("lifeos")
 
 # Path prefix -> live-update channel (matches the frontend's top-level query key).
@@ -65,10 +85,28 @@ _DOCS_CSP = (
 _API_CSP = "default-src 'none'; frame-ancestors 'none'"
 
 
+def _route_label(request: Request) -> str:
+    """Low-cardinality metrics label: the matched route *template*, not the URL."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    return path if isinstance(path, str) else "__unmatched__"
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     manager.loop = asyncio.get_running_loop()
-    yield
+
+    fanout_task: asyncio.Task[None] | None = None
+    if settings.ws_fanout_enabled and not settings.redis_url.startswith("fakeredis"):
+        fanout_task = asyncio.create_task(run_fanout(manager))
+
+    try:
+        yield
+    finally:
+        if fanout_task is not None:
+            fanout_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await fanout_task
 
 
 def create_app() -> FastAPI:
@@ -87,7 +125,10 @@ def create_app() -> FastAPI:
     async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
         # Log the traceback server-side; never leak it to the client.
         logger.exception("Unhandled error: %s %s", request.method, request.url.path)
-        return JSONResponse({"detail": "Internal server error"}, status_code=500)
+        return JSONResponse(
+            {"detail": "Internal server error", "request_id": get_request_id()},
+            status_code=500,
+        )
 
     @app.middleware("http")
     async def on_mutation(
@@ -158,7 +199,32 @@ def create_app() -> FastAPI:
             )
         return response
 
-    # Outermost: so even short-circuited 413/429 responses carry CORS headers.
+    @app.middleware("http")
+    async def observe_requests(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        started = time.perf_counter()
+        response = await call_next(request)
+        elapsed = time.perf_counter() - started
+
+        if request.url.path != "/metrics":
+            label = _route_label(request)
+            method = request.method
+            HTTP_REQUESTS.labels(method, label, str(response.status_code)).inc()
+            HTTP_LATENCY.labels(method, label).observe(elapsed)
+            logger.info(
+                "request",
+                extra={
+                    "method": method,
+                    "path": request.url.path,
+                    "status": response.status_code,
+                    "duration_ms": round(elapsed * 1000, 1),
+                    "client_ip": request.client.host if request.client else None,
+                },
+            )
+        return response
+
+    # CORS wraps the rest so short-circuited 413/429 responses keep CORS headers.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
@@ -166,6 +232,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
+    # Outermost: same context as the error handler, so a 500 can still name the
+    # request; also echoes X-Request-ID on every non-error response.
+    app.add_middleware(RequestIDMiddleware)
 
     app.include_router(health.router, prefix="/api")
     app.include_router(auth.router, prefix="/api")
@@ -185,6 +254,13 @@ def create_app() -> FastAPI:
             "version": __version__,
             "docs": "/docs" if docs_enabled else "disabled",
         }
+
+    if settings.metrics_enabled:
+
+        @app.get("/metrics", include_in_schema=False)
+        def metrics() -> Response:
+            body, content_type = render_metrics()
+            return PlainTextResponse(body, media_type=content_type)
 
     return app
 

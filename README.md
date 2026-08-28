@@ -27,7 +27,10 @@ error boundary, a production config guard, and dependency scanning in CI
 (see [SECURITY.md](SECURITY.md)) · **Deployment** — multi-stage images and a
 Terraform stack (`infra/`) that puts the app on AWS ECS Fargate behind an ALB
 with RDS, ElastiCache, S3 and a GitHub-OIDC release pipeline
-(see [infra/README.md](infra/README.md)).
+(see [infra/README.md](infra/README.md)) · **Monitoring** — structured JSON
+logs, per-request IDs, Prometheus metrics with a Grafana dashboard, optional
+Sentry, a readiness probe, and a Redis pub/sub WebSocket fan-out so live updates
+survive multiple API instances.
 
 ## Architecture
 
@@ -62,6 +65,7 @@ with RDS, ElastiCache, S3 and a GitHub-OIDC release pipeline
 | Python tooling  | uv, Ruff, mypy, pytest                 |
 | Containers      | Docker (multi-stage) + Docker Compose  |
 | Infra           | AWS ECS Fargate · ALB · RDS · ElastiCache · S3 · Terraform |
+| Observability   | JSON logs · Prometheus `/metrics` · Grafana · Sentry · CloudWatch alarms |
 | CI / CD         | GitHub Actions · OIDC · Trivy image scan |
 
 ## Prerequisites
@@ -116,6 +120,21 @@ scans, migrates, and rolls the services. See [infra/README.md](infra/README.md)
 for the bootstrap-and-apply steps and [DECISIONS.md](DECISIONS.md) ADR-0023 for
 the topology rationale.
 
+## Observability
+
+The API logs one structured line per request (`LOG_JSON=true` in the prod image),
+tags every request with an `X-Request-ID`, and exposes Prometheus metrics at
+`/metrics`. For a local view:
+
+```bash
+JWT_SECRET=$(openssl rand -hex 32) \
+  docker compose -f docker-compose.prod.yml -f docker-compose.observability.yml up --build
+# Grafana http://localhost:3001 (anon viewer) · Prometheus http://localhost:9090
+```
+
+Set `SENTRY_DSN` to turn on error tracking. `GET /api/health/ready` is the
+readiness probe (checks Postgres + Redis). ADR-0024 has the rationale.
+
 ## Repo layout
 
 ```
@@ -135,7 +154,11 @@ frontend/
     pages/       route-level screens
     components/   shared UI
   docker/        nginx.conf for the static prod image
-infra/           Terraform (ECS Fargate stack) + bootstrap + compose gateway
+infra/
+  *.tf           Terraform — ECS Fargate stack
+  bootstrap/     one-off remote-state bucket + lock table
+  observability/ Prometheus scrape config + Grafana provisioning
+  compose/       gateway config for docker-compose.prod.yml
 ```
 
 ## Tests

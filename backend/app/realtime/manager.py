@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import uuid
 from typing import Any, Protocol
 
 from app.core.redis import get_redis
@@ -21,6 +22,9 @@ class ConnectionManager:
     def __init__(self) -> None:
         self._by_user: dict[int, set[_Sendable]] = {}
         self.loop: asyncio.AbstractEventLoop | None = None
+        # Identifies this process on the Redis fan-out channel, so the
+        # subscriber can ignore frames it published itself.
+        self.origin = uuid.uuid4().hex
 
     async def connect(self, user_id: int, websocket: _Sendable) -> None:
         await websocket.accept()
@@ -53,10 +57,10 @@ def publish(user_id: int, event: dict[str, Any]) -> None:
     """Deliver an event to a user's sockets on this process, and mirror it onto a
     Redis channel.
 
-    The direct call is what actually reaches browsers with a single worker (dev,
-    and one uvicorn process). The Redis publish is the seam a standalone
-    subscriber process would consume to fan out across workers in a real
-    multi-process deployment; nothing in this repo consumes it yet (ADR-0017).
+    The direct call is what reaches browsers connected to *this* process. The
+    Redis publish carries the same frame (tagged with this process's origin) to
+    every other process; ``app.realtime.fanout`` consumes it there and delivers
+    to their sockets (ADR-0017).
     """
     loop = manager.loop
     if loop is not None and not loop.is_closed():
@@ -64,4 +68,7 @@ def publish(user_id: int, event: dict[str, Any]) -> None:
             asyncio.run_coroutine_threadsafe(manager.send_to_user(user_id, event), loop)
 
     with contextlib.suppress(Exception):
-        get_redis().publish(LIVE_CHANNEL, json.dumps({"user_id": user_id, "event": event}))
+        get_redis().publish(
+            LIVE_CHANNEL,
+            json.dumps({"user_id": user_id, "event": event, "origin": manager.origin}),
+        )

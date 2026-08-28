@@ -41,6 +41,16 @@ class Settings(BaseSettings):
     max_body_bytes: int = 4 * 1024 * 1024
     global_rate_limit_per_minute: int = 600
 
+    # Observability
+    log_level: str = "INFO"
+    log_json: bool = False  # prod images set true; dev keeps human-readable logs
+    metrics_enabled: bool = True
+    sentry_dsn: str = ""  # empty -> error tracking is a no-op
+    sentry_traces_sample_rate: float = 0.0
+    # WebSocket fan-out across processes. Off for the in-process fake (its
+    # pub/sub consumer blocks); real Redis in Compose/prod turns it on.
+    ws_fanout_enabled: bool = True
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

@@ -218,9 +218,22 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Redis pub/sub WS fan-out consumer — now needed (multiple API tasks) → M14
 
 ## M14 — Monitoring
-- [ ] Structured logging, request metrics
-- [ ] Prometheus + Grafana in Compose, then in cloud
-- [ ] Error tracking, uptime checks
+- [x] Structured JSON logging (stdlib formatter, `LOG_JSON`), one line per
+      request with method / path / status / duration / `request_id`
+- [x] `RequestIDMiddleware` (pure ASGI) — inbound `X-Request-ID` or minted,
+      echoed on the response, present in the `500` body
+- [x] Prometheus metrics — `lifeos_http_requests_total` + `..._duration_seconds`
+      labelled by method / route template / status; `GET /metrics`
+- [x] `docker-compose.observability.yml` — Prometheus + Grafana, provisioned
+      datasource + dashboard in `infra/observability/`
+- [x] Sentry error tracking, initialised only when `SENTRY_DSN` is set
+- [x] `GET /api/health/ready` — DB + Redis readiness probe (503 when degraded)
+- [x] Redis pub/sub WebSocket fan-out consumer (closes ADR-0017) — per-process
+      origin tag, started only against real Redis
+- [x] CloudWatch alarms incl. ALB no-healthy-hosts; CI validates compose files
+- [ ] Scrape ECS from a real Prometheus (AMP + ADOT sidecar) → cloud follow-up
+- [ ] Log-based metrics / traces / RUM → later
+- [ ] Alert routing beyond email (PagerDuty/Slack) → later
 
 ## M15 — Mobile (React Native)
 - [ ] Shared API client, auth, dashboard + job tracker screens

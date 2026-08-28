@@ -60,10 +60,9 @@ by the token's `sub`.
   or git (ADR-0023). Local dev still uses a plain `.env`.
 - **WAF / network-layer DoS**: not in front of the ALB yet (deferred). Container
   images are scanned by Trivy in the release pipeline (fails on `CRITICAL`).
-- **Multi-task realtime**: production runs several API tasks; the in-process
-  WebSocket `ConnectionManager` only pushes to clients on the same task until
-  the Redis pub/sub fan-out consumer lands (ADR-0017). Not a confidentiality
-  issue — just missed live updates.
+- **Multi-task realtime**: production runs several API tasks; a Redis pub/sub
+  fan-out consumer (ADR-0024) relays live-update frames between them. Never a
+  confidentiality issue — frames are already user-scoped.
 
 ## Self-pentest checklist
 

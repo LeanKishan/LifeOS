@@ -1,0 +1,42 @@
+# Prometheus + Grafana for a local prod-parity run. Merge it onto the prod
+# stack so both can reach the `backend` service on the shared network:
+#
+#   JWT_SECRET=$(openssl rand -hex 32) \
+#     docker compose -f docker-compose.prod.yml -f docker-compose.observability.yml up --build
+#
+# Grafana: http://localhost:3001  (anonymous viewer; admin / admin)
+# Prometheus: http://localhost:9090
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: light
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  promdata:
+  grafanadata:

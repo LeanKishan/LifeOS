@@ -64,6 +64,25 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage_low" {
   }
 }
 
+resource "aws_cloudwatch_metric_alarm" "api_no_healthy_hosts" {
+  alarm_name          = "${local.name}-api-no-healthy-hosts"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  period              = 60
+  threshold           = 1
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "HealthyHostCount"
+  statistic           = "Minimum"
+  treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+
+  dimensions = {
+    LoadBalancer = aws_lb.this.arn_suffix
+    TargetGroup  = aws_lb_target_group.api.arn_suffix
+  }
+}
+
 resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   alarm_name          = "${local.name}-rds-cpu-high"
   comparison_operator = "GreaterThanThreshold"

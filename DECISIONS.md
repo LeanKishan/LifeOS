@@ -456,3 +456,56 @@ account and is not part of CI.
 replica; WAF on the ALB; CloudFront in front of the SPA; the Redis pub/sub WS
 fan-out consumer — now actually needed, since M7's in-process `ConnectionManager`
 only reaches clients on the *same* API task (ADR-0017).
+
+## ADR-0024 — Observability: stdlib logging, `prometheus_client`, Redis WS fan-out
+
+**Decision.** Four pieces, each the smallest thing that works:
+
+- **Structured logs.** A `logging.Formatter` subclass emits one JSON object per
+  line (`ts`, `level`, `logger`, `msg`, `request_id`, plus any `extra=`);
+  `LOG_JSON` picks JSON vs a readable text format. The prod image sets
+  `LOG_JSON=true` and CloudWatch Logs ingests it as-is. No `structlog`, no
+  logging framework — a formatter and a `StreamHandler`.
+- **Request IDs.** `RequestIDMiddleware` is *pure ASGI* (not
+  `BaseHTTPMiddleware`) so it shares a context with Starlette's
+  `ServerErrorMiddleware`: it honours an inbound `X-Request-ID` (the ALB adds
+  one) or mints a short one, binds it to a `ContextVar`, and echoes it on the
+  response. Because the id is still bound when the catch-all handler runs, a
+  `500` body carries `request_id` for correlation. `BaseHTTPMiddleware` can't do
+  this — it runs downstream in a child task whose context doesn't propagate
+  back.
+- **Metrics.** The standard `prometheus_client`: a `Counter` and a `Histogram`
+  labelled by method, **route template** (`/projects/{project_id}`, not the URL
+  — bounded cardinality; unmatched paths collapse to `__unmatched__`) and
+  status, incremented in one `@app.middleware`.
+  `GET /metrics` renders the default registry (so process/GC collectors come
+  for free) and is excluded from its own counters. No auth on `/metrics`: the
+  ALB only routes `/api/*` to the API, so it isn't publicly reachable; a
+  scraper hits the task IP directly.
+- **Error tracking.** `sentry_sdk.init` only when `SENTRY_DSN` is set — the same
+  "empty config → no-op" pattern as the Anthropic key. Sentry auto-instruments
+  FastAPI/logging once initialised.
+
+**Prometheus + Grafana** run as `docker-compose.observability.yml`, merged onto
+the prod stack so they share its network (`prometheus` scrapes `backend:8000`);
+Grafana is provisioned with the datasource and one dashboard from
+`infra/observability/`. In AWS the app *exposes* `/metrics`; wiring a scraper to
+ECS (AMP + an ADOT sidecar, or a Prometheus task with ECS SD) is deferred —
+"Compose now, cloud later" per the roadmap. Baseline CloudWatch alarms (ALB
+5xx / no-healthy-hosts, ECS + RDS CPU, RDS storage) already ship from
+`infra/monitoring.tf`.
+
+**Readiness vs liveness.** `/api/health` stays always-200 (liveness — the ALB
+keeps a task in rotation through a blip). New `/api/health/ready` pings the DB
+*and* Redis and returns `503` if either is down; uptime monitors and the ECS
+deployment circuit-breaker should watch that one.
+
+**WebSocket fan-out (closes ADR-0017's deferral).** Prod runs several API tasks;
+`publish()` always mirrored each frame to a Redis channel, but nothing consumed
+it. `app.realtime.fanout.run_fanout` now subscribes (async redis client) in each
+process and delivers frames tagged with a *different* process `origin` (a
+per-process uuid on the `ConnectionManager`) — the publishing process already
+delivered to its own sockets directly, so this avoids double-send. It's started
+from the lifespan only when Redis is real (`fakeredis`'s pub/sub consumer
+blocks), so dev and the test suite stay single-process and never run it; the
+delivery-decision function is unit-tested in isolation.

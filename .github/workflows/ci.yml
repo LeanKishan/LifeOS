@@ -103,3 +103,10 @@ jobs:
       - name: Lint shell
         working-directory: .
         run: shellcheck .github/scripts/*.sh backend/docker/entrypoint.sh
+      - name: Validate compose files
+        working-directory: .
+        run: |
+          docker compose -f docker-compose.yml config -q
+          JWT_SECRET=ci docker compose -f docker-compose.prod.yml config -q
+          JWT_SECRET=ci docker compose \
+            -f docker-compose.prod.yml -f docker-compose.observability.yml config -q

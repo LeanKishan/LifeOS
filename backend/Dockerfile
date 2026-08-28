@@ -31,7 +31,8 @@ FROM base AS prod
 ENV ENVIRONMENT=production \
     CELERY_EAGER=false \
     WEB_CONCURRENCY=2 \
-    FORWARDED_ALLOW_IPS="*"
+    FORWARDED_ALLOW_IPS="*" \
+    LOG_JSON=true
 COPY --from=deps /app/.venv /app/.venv
 COPY . .
 RUN useradd --system --uid 1001 --home-dir /app appuser \
