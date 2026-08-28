@@ -66,10 +66,19 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
       fractional/lexo-rank ordering is the scale answer
 
 ## M4 — Calendar
-- [ ] Models: Event, RecurrenceRule, Reminder
-- [ ] Recurring events (RRULE), reminders
-- [ ] Link events to projects/applications
-- [ ] Frontend: month/week views
+- [x] Models: Event (RRULE string, not a rules table), Reminder
+- [x] Recurring events expanded with dateutil; `GET /occurrences?from=&to=`
+      returns instances clipped to the window (capped 400 days / 750 instances)
+- [x] Reminders (data + CRUD; delivery is M9)
+- [x] Optional SET NULL links from an event to a project / task / application,
+      validated on write
+- [x] All datetimes naive UTC (ADR-0014); API takes an offset and converts
+- [x] Frontend: month + week views, prev/today/next nav, event modal with
+      repeat presets, dashboard "Upcoming" list
+- [x] Tests: 15 — time/RRULE validation, foreign link, single/partial overlap,
+      weekly COUNT, DAILY UNTIL, window clipping, duration, sort, range cap
+- [ ] Per-occurrence overrides (move/cancel one instance) → later
+- [ ] Non-UTC display / user timezone setting → later
 
 ## M5 — Finance
 - [ ] Models: Account, Transaction, Category, Budget, Bill, Subscription

@@ -1,11 +1,15 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/AuthContext";
+import { fmtTime } from "@/features/calendar/dateUtils";
+import { useOccurrences } from "@/features/calendar/queries";
 import { StatCards } from "@/features/jobTracker/StatCards";
 import { useProjects } from "@/features/projects/queries";
 import { api } from "@/lib/api";
+import CalendarPage from "@/pages/CalendarPage";
 import JobTrackerPage from "@/pages/JobTrackerPage";
 import LoginPage from "@/pages/LoginPage";
 import ProjectBoardPage from "@/pages/ProjectBoardPage";
@@ -36,6 +40,7 @@ const NAV = [
   { to: "/", label: "Dashboard" },
   { to: "/job-tracker", label: "Job Tracker" },
   { to: "/projects", label: "Projects" },
+  { to: "/calendar", label: "Calendar" },
 ];
 
 function Header() {
@@ -101,6 +106,41 @@ function ProjectsSummary() {
   );
 }
 
+function UpcomingEvents() {
+  const from = useMemoNow();
+  const to = new Date(new Date(from).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: occurrences = [] } = useOccurrences(from, to);
+  const next = occurrences.slice(0, 5);
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      {next.length === 0 ? (
+        <p className="text-sm text-slate-500">Nothing in the next two weeks.</p>
+      ) : (
+        <ul className="space-y-1.5 text-sm">
+          {next.map((occurrence, index) => {
+            const start = new Date(occurrence.start_at);
+            return (
+              <li key={`${occurrence.event_id}-${index}`} className="flex justify-between gap-4">
+                <span className="truncate">{occurrence.title}</span>
+                <span className="shrink-0 text-slate-400">
+                  {start.toLocaleDateString([], { month: "short", day: "numeric" })}
+                  {!occurrence.all_day && ` · ${fmtTime(start)}`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** A single "now" ISO string that stays stable for the component's lifetime. */
+function useMemoNow(): string {
+  return useMemo(() => new Date().toISOString(), []);
+}
+
 function Dashboard() {
   const { user } = useAuth();
   return (
@@ -123,15 +163,27 @@ function Dashboard() {
         <StatCards />
       </section>
 
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-slate-500">Projects</h3>
-          <Link to="/projects" className="text-sm text-emerald-600 hover:underline">
-            Open Projects →
-          </Link>
-        </div>
-        <ProjectsSummary />
-      </section>
+      <div className="grid gap-6 md:grid-cols-2">
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-500">Projects</h3>
+            <Link to="/projects" className="text-sm text-emerald-600 hover:underline">
+              Open Projects →
+            </Link>
+          </div>
+          <ProjectsSummary />
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-500">Upcoming</h3>
+            <Link to="/calendar" className="text-sm text-emerald-600 hover:underline">
+              Open Calendar →
+            </Link>
+          </div>
+          <UpcomingEvents />
+        </section>
+      </div>
     </div>
   );
 }
@@ -173,6 +225,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProjectBoardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
               </ProtectedRoute>
             }
           />

@@ -11,7 +11,8 @@ and [DECISIONS.md](DECISIONS.md) for why each piece is built the way it is.
 refresh, route guards) · **Job Tracker** — applications with a status pipeline,
 companies, interviews, contacts, a board and table view, and search stats ·
 **Kanban** — projects with custom columns, tasks with priorities / labels /
-subtasks / comments, and a drag-and-drop board.
+subtasks / comments, and a drag-and-drop board · **Calendar** — events with
+iCalendar recurrence, reminders, and month / week views.
 
 ## Architecture
 

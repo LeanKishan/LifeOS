@@ -175,3 +175,23 @@ project's owner).
 endpoint touches — no join back to the root for a 404 decision, and one obvious
 place per resource (`_*_or_404`). The cost is keeping `user_id` correct on
 insert, which the service layer does in one spot.
+
+## ADR-0014 — Datetimes are naive UTC; recurrence is an RRULE string
+
+**Decision.** Every stored datetime is naive and understood as UTC. The API
+accepts an ISO value with an offset, converts to UTC, and drops the tzinfo on the
+way in; on the way out a serializer re-attaches `+00:00`. Recurring events store
+one iCalendar RRULE string (`FREQ=WEEKLY;BYDAY=MO;COUNT=10`), not a rules table.
+`GET /calendar/occurrences?from=&to=` expands events into instances with
+`dateutil.rrule`, capped at 400 days / 750 instances.
+
+**Why.** Naive-UTC storage sidesteps SQLite's lack of real `timestamptz` and
+keeps SQLite and Postgres behaving identically; UTC-everywhere means comparisons
+and arithmetic never surprise. RRULE is the interchange format calendars already
+speak, so a client library produces it directly and there's nothing bespoke to
+reimplement. The rrule maths runs tz-aware internally so an `UNTIL=...Z` in the
+rule validates.
+
+**Not done.** Per-instance overrides (move/rename/cancel one occurrence, i.e.
+`RECURRENCE-ID` + `EXDATE`) and non-UTC display rules — both land when the
+calendar UI needs them.
