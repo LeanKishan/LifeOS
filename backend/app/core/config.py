@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
+    # AI assistant. Empty key -> the /coach endpoint returns 503.
+    anthropic_api_key: str = ""
+    assistant_model: str = "claude-opus-5"
+
     # Auth
     jwt_secret: str = DEV_JWT_SECRET
     jwt_algorithm: str = "HS256"

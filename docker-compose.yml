@@ -9,6 +9,7 @@ x-backend-env: &backend-env
   ENVIRONMENT: ${ENVIRONMENT:-development}
   JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
   CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
 services:
   db:

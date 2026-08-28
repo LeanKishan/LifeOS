@@ -16,6 +16,7 @@ dependencies = [
     "fakeredis>=2.26",
     "celery>=5.4",
     "reportlab>=4.2",
+    "anthropic>=0.49",
     "pyjwt>=2.10",
     "pwdlib[argon2]>=0.2.1",
     "python-multipart>=0.0.12",

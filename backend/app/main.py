@@ -15,6 +15,7 @@ from app import __version__
 from app.api.routes import (
     auth,
     calendar,
+    coach,
     finance,
     health,
     job_tracker,
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     app.include_router(calendar.router, prefix="/api")
     app.include_router(finance.router, prefix="/api")
     app.include_router(learning.router, prefix="/api")
+    app.include_router(coach.router, prefix="/api")
     app.include_router(ws.router, prefix="/api")
 
     @app.get("/", tags=["meta"])
