@@ -23,8 +23,12 @@ def _flush_redis() -> Iterator[None]:
 
 
 @pytest.fixture
-def db_session() -> Iterator[Session]:
-    """A fresh in-memory SQLite database per test."""
+def db_session(monkeypatch: pytest.MonkeyPatch) -> Iterator[Session]:
+    """A fresh in-memory SQLite database per test.
+
+    Also repoints ``app.core.db.SessionLocal`` at it so code that opens its own
+    session outside a request (Celery tasks) hits the same database.
+    """
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -32,6 +36,8 @@ def db_session() -> Iterator[Session]:
     )
     Base.metadata.create_all(engine)
     testing_session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr("app.core.db.SessionLocal", testing_session)
+
     session = testing_session()
     try:
         yield session

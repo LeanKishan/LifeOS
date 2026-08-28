@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Any, cast
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, HTTPException, Path, Query, Response, UploadFile, status
 
 from app.api.deps import CurrentUser, DbSession, RedisDep
 from app.core.cache import cache_version, cached_json, store_json
@@ -23,11 +23,14 @@ from app.schemas.finance import (
     CategoryUpdate,
     FinanceSummary,
     ImportResult,
+    ReportRequest,
     TransactionCreate,
     TransactionRead,
     TransactionUpdate,
 )
 from app.services import finance as svc
+from app.services.reports import load_report
+from app.worker.tasks import generate_finance_report
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 
@@ -276,3 +279,28 @@ def summary(
 
     store_json(client, key, result.model_dump(mode="json"), ttl_seconds=30)
     return result
+
+
+# --------------------------------------------------------------------------- #
+# Monthly PDF report (rendered by a Celery task)
+# --------------------------------------------------------------------------- #
+@router.post("/reports", status_code=status.HTTP_202_ACCEPTED)
+def request_report(data: ReportRequest, user: CurrentUser) -> dict[str, str]:
+    generate_finance_report.delay(user.id, data.month)
+    return {"status": "queued", "month": data.month}
+
+
+@router.get("/reports/{month}")
+def download_report(
+    user: CurrentUser,
+    client: RedisDep,
+    month: str = Path(pattern=r"^\d{4}-\d{2}$"),
+) -> Response:
+    pdf = load_report(client, user.id, month)
+    if pdf is None:
+        raise _404("Report")
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="finance-{month}.pdf"'},
+    )

@@ -168,3 +168,7 @@ class FinanceSummary(BaseModel):
     uncategorized_cents: int
     upcoming_bills_cents: int
     by_category: list[CategorySpend] = Field(default_factory=list)
+
+
+class ReportRequest(BaseModel):
+    month: str = Field(pattern=r"^\d{4}-\d{2}$")

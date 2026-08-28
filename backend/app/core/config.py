@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./lifeos.db"
     redis_url: str = "fakeredis://"
 
+    # Celery. Dev/tests run tasks synchronously (no broker/worker needed);
+    # Compose sets celery_eager=false and points at a real Redis broker.
+    celery_eager: bool = True
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_result_backend: str = "redis://localhost:6379/2"
+
     # Auth
     jwt_secret: str = DEV_JWT_SECRET
     jwt_algorithm: str = "HS256"
