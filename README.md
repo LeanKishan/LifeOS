@@ -21,7 +21,10 @@ revocation, auth rate limiting, and a cached dashboard summary · **Background
 jobs** — Celery tasks for due-reminder notifications, a daily digest, and a
 monthly finance PDF · **AI assistant** — a tool-using chat that reads your data
 and can add tasks, events, and flashcards · **Analytics** — cross-module
-productivity / finance / learning aggregates with CSV & PDF export.
+productivity / finance / learning aggregates with CSV & PDF export ·
+**Security pass** — security headers, body-size and write-rate limits, a generic
+error boundary, a production config guard, and dependency scanning in CI
+(see [SECURITY.md](SECURITY.md)).
 
 ## Architecture
 

@@ -8,7 +8,7 @@ from fastapi import HTTPException, Request, status
 from app.core.redis import get_redis
 
 
-def _over_limit_retry_after(key: str, limit: int, window_seconds: int) -> int:
+def over_limit_retry_after(key: str, limit: int, window_seconds: int) -> int:
     """Fixed-window counter. Returns seconds to wait if over the limit, else 0.
 
     Fixed windows can allow a 2x burst at a boundary; a sliding window (sorted
@@ -32,7 +32,7 @@ def rate_limited(
 
     def dependency(request: Request) -> None:
         client_host = request.client.host if request.client else "unknown"
-        retry_after = _over_limit_retry_after(
+        retry_after = over_limit_retry_after(
             f"{bucket}:{client_host}", limit, window_seconds
         )
         if retry_after:

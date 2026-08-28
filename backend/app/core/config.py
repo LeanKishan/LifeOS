@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Comma-separated list in the CORS_ORIGINS env var
     cors_origins: str = "http://localhost:5173"
 
+    # Hardening knobs
+    max_body_bytes: int = 4 * 1024 * 1024
+    global_rate_limit_per_minute: int = 600
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
@@ -46,11 +50,20 @@ class Settings(BaseSettings):
         return self.environment.lower() == "production"
 
     def model_post_init(self, context: object, /) -> None:
-        if self.is_production and (
-            self.jwt_secret == DEV_JWT_SECRET or len(self.jwt_secret) < 32
-        ):
+        if not self.is_production:
+            return
+        problems: list[str] = []
+        if self.jwt_secret == DEV_JWT_SECRET or len(self.jwt_secret) < 32:
+            problems.append("JWT_SECRET must be a strong value (>= 32 chars)")
+        if self.database_url.startswith("sqlite"):
+            problems.append("DATABASE_URL must be a real database, not the dev SQLite file")
+        if self.redis_url.startswith("fakeredis"):
+            problems.append("REDIS_URL must be a real Redis, not the in-process fake")
+        if self.celery_eager:
+            problems.append("CELERY_EAGER must be false so tasks run on a worker")
+        if problems:
             raise ValueError(
-                "JWT_SECRET must be a strong value (>= 32 chars) when ENVIRONMENT=production"
+                "Unsafe configuration for ENVIRONMENT=production: " + "; ".join(problems)
             )
 
 

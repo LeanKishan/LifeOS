@@ -179,10 +179,22 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Richer charts (stacked, trend lines) → polish; dataviz pass deferred
 
 ## M12 — Security pass
-- [ ] Input validation review, security headers, CSRF where relevant
-- [ ] Rate limiting on auth, secrets management
-- [ ] Dependency + container scanning in CI
-- [ ] Self-pentest notes
+- [x] Security headers on every response (nosniff, DENY, no-referrer,
+      Permissions-Policy, `default-src 'none'` CSP; HSTS in prod only)
+- [x] 4 MiB request-body limit (`413`), coarse per-IP write rate limit (`429`)
+- [x] Generic `500` handler — no stack traces on the wire; `/docs` off in prod
+- [x] CORS tightened to explicit method / header lists
+- [x] Production config guard extended: refuses dev SQLite / fakeredis / eager
+      Celery / weak secret when `ENVIRONMENT=production`
+- [x] `pip-audit` + `npm audit` in CI (informational, `continue-on-error`)
+- [x] `SECURITY.md` — threat model + self-pentest checklist; ADR-0022
+- [x] Tests: 5 — headers present, oversized body, global rate limit, reads
+      unthrottled, unhandled error stays generic (+ config guard tests)
+- [ ] CSRF: not applicable — Bearer-token auth, no ambient cookie (documented)
+- [ ] Streaming/chunked body isn't capped (only `Content-Length`) → later
+- [ ] Sliding-window / per-account rate limits → later
+- [ ] Container image scanning → M13 (with the real Dockerfiles)
+- [ ] Real secret store (env vars for now) → M13
 
 ## M13 — Deployment (AWS)
 - [ ] Production Dockerfiles (multi-stage), migrations on release

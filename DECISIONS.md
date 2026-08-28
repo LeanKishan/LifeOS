@@ -343,3 +343,57 @@ no timestamp, so "throughput" and "cycle time" weren't derivable. M11 adds
 `Task.done` + `Task.completed_at` (stamped on the transition) as the minimal
 change that makes productivity analytics real, rather than inferring "done" from
 a column name.
+
+## ADR-0022 — Security pass: headers + limits as middleware, a hard prod-config guard
+
+**Decision.** Four `http` middlewares wrap every request, registered so
+`CORSMiddleware` is outermost and a short-circuited `413`/`429` still carries CORS
+headers:
+
+- **`security_headers`** sets `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`,
+  `Permissions-Policy: geolocation=() camera=() microphone=()`, and a
+  `Content-Security-Policy` of `default-src 'none'; frame-ancestors 'none'` for
+  the API (a looser CSP for the `/docs` paths, which don't exist in prod).
+  `Strict-Transport-Security` is added only when `ENVIRONMENT=production`.
+- **`limit_body_size`** rejects a request whose `Content-Length` exceeds
+  `MAX_BODY_BYTES` (4 MiB) with `413` before the body is read.
+- **`global_rate_limit`** puts a coarse per-IP ceiling
+  (`GLOBAL_RATE_LIMIT_PER_MINUTE`, 600) on *mutating* methods only, on top of the
+  tight per-endpoint auth limits from M8. Reuses the M8 fixed-window counter.
+- **`on_mutation`** (unchanged from M7) emits live-update frames.
+
+A registered `Exception` handler logs the traceback server-side and returns a
+flat `{"detail": "Internal server error"}` — no stack traces over the wire.
+`/docs`, `/redoc`, `/openapi.json` are disabled when `ENVIRONMENT=production`.
+CORS `allow_methods` / `allow_headers` are now explicit lists, not `*`.
+
+**Config guard.** `Settings.model_post_init` already refused a weak `JWT_SECRET`
+in production; it now also refuses the *other* dev conveniences when
+`ENVIRONMENT=production` — a `sqlite://` database, a `fakeredis://` URL, or
+`CELERY_EAGER=true`. All of them are safe, deliberate defaults for local dev
+(ADR-0004/0018/0019) and catastrophic in production, so the app fails to boot
+rather than start in a degraded state.
+
+**Why middleware, not per-route.** Headers and body/rate ceilings are
+cross-cutting; wiring them per-router is how one gets missed. One place to read,
+one place to change.
+
+**Why CSRF isn't addressed.** The API is stateless Bearer-token auth — the token
+lives in `localStorage` and is attached by an explicit `Authorization` header
+(ADR-0007). A browser never attaches it ambiently, so a cross-site form post
+can't ride an existing session. The residual risk is XSS reading `localStorage`,
+which the `default-src 'none'` CSP and React's default escaping mitigate;
+cookie-based auth with `SameSite` would be the move only if we needed
+silent-refresh cookies.
+
+**Dependency scanning.** CI runs `pip-audit` (backend) and `npm audit
+--audit-level=high` (frontend) as `continue-on-error` steps — visible on every
+run, but a fresh advisory in a transitive dependency doesn't block an unrelated
+PR. Container image scanning lands with the real Dockerfiles in M13.
+
+**Deferred.** A streaming/chunked body can still exceed the limit (only
+`Content-Length` is checked); an SPA-serving layer will need its own CSP with
+`script-src 'self'`; secrets management is env-vars for now (a real secret store
+is M13). See `SECURITY.md` for the full threat model and the self-pentest
+checklist.
