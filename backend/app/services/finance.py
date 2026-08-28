@@ -290,7 +290,10 @@ def import_transactions(db: Session, user_id: int, csv_text: str) -> ImportResul
         try:
             occurred = date.fromisoformat((row["occurred_on"] or "").strip())
             kind = TransactionKind((row["kind"] or "").strip().lower())
-            amount = Decimal((row["amount"] or "").strip())
+            try:
+                amount = Decimal((row["amount"] or "").strip())
+            except InvalidOperation:
+                raise ValueError(f"invalid amount: {row['amount']!r}") from None
             if amount <= 0:
                 raise ValueError("amount must be positive")
             cents = int((amount * 100).to_integral_value(rounding=ROUND_HALF_UP))

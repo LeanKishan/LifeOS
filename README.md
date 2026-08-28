@@ -12,7 +12,9 @@ refresh, route guards) · **Job Tracker** — applications with a status pipelin
 companies, interviews, contacts, a board and table view, and search stats ·
 **Kanban** — projects with custom columns, tasks with priorities / labels /
 subtasks / comments, and a drag-and-drop board · **Calendar** — events with
-iCalendar recurrence, reminders, and month / week views.
+iCalendar recurrence, reminders, and month / week views · **Finance** — accounts,
+categorised transactions (integer cents), monthly budgets, CSV import, and a
+budget-vs-actual summary.
 
 ## Architecture
 

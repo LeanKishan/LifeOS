@@ -81,10 +81,20 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Non-UTC display / user timezone setting → later
 
 ## M5 — Finance
-- [ ] Models: Account, Transaction, Category, Budget, Bill, Subscription
-- [ ] Monthly rollups, savings rate, budget-vs-actual (SQL aggregation)
-- [ ] CSV import
-- [ ] Frontend: charts, budget editor
+- [x] Models: Account, Category (typed), Transaction (integer cents), Budget
+      (unique per user+category+month), Bill
+- [x] `GET /summary?month=` — grouped-SUM rollup: income/expense/net, savings
+      rate, per-category spent vs budget (over flag), uncategorized, bills total
+- [x] Account balance = starting + Σincome − Σexpense (computed)
+- [x] Filtered transaction list (account/category/kind/date range, limit/offset)
+- [x] CSV import (multipart), auto-creates categories, per-row error report
+- [x] Frontend: month summary cards, spending-vs-budget bars, budget editor,
+      accounts strip, transactions table with kind filter, CSV import button
+- [x] `PRAGMA foreign_keys=ON` for SQLite so ON DELETE behaves like Postgres
+- [x] Tests: 14 — amount validation, balance, filters, summary math + month
+      boundary + budget-vs-actual, budget upsert, CSV import, cascade/SET NULL
+- [ ] Transfers (account-to-account) → later
+- [ ] Recurring-transaction generation from bills → M9 (Celery)
 
 ## M6 — Learning Management
 - [ ] Models: Course, Lesson, Note, Flashcard, Quiz, LearningGoal

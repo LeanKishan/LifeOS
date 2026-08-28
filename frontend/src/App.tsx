@@ -6,10 +6,13 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/features/auth/AuthContext";
 import { fmtTime } from "@/features/calendar/dateUtils";
 import { useOccurrences } from "@/features/calendar/queries";
+import { currentMonth, formatCents } from "@/features/finance/money";
+import { useSummary } from "@/features/finance/queries";
 import { StatCards } from "@/features/jobTracker/StatCards";
 import { useProjects } from "@/features/projects/queries";
 import { api } from "@/lib/api";
 import CalendarPage from "@/pages/CalendarPage";
+import FinancePage from "@/pages/FinancePage";
 import JobTrackerPage from "@/pages/JobTrackerPage";
 import LoginPage from "@/pages/LoginPage";
 import ProjectBoardPage from "@/pages/ProjectBoardPage";
@@ -41,6 +44,7 @@ const NAV = [
   { to: "/job-tracker", label: "Job Tracker" },
   { to: "/projects", label: "Projects" },
   { to: "/calendar", label: "Calendar" },
+  { to: "/finance", label: "Finance" },
 ];
 
 function Header() {
@@ -141,6 +145,20 @@ function useMemoNow(): string {
   return useMemo(() => new Date().toISOString(), []);
 }
 
+function FinanceSummaryCard() {
+  const { data } = useSummary(currentMonth());
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="text-2xl font-bold tabular-nums">
+        {data ? formatCents(data.net_cents) : "–"}
+      </div>
+      <div className="text-xs text-slate-500">
+        net this month{data ? ` · ${Math.round(data.savings_rate * 100)}% saved` : ""}
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { user } = useAuth();
   return (
@@ -163,12 +181,12 @@ function Dashboard() {
         <StatCards />
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-slate-500">Projects</h3>
             <Link to="/projects" className="text-sm text-emerald-600 hover:underline">
-              Open Projects →
+              Open →
             </Link>
           </div>
           <ProjectsSummary />
@@ -176,9 +194,19 @@ function Dashboard() {
 
         <section>
           <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-500">Finance</h3>
+            <Link to="/finance" className="text-sm text-emerald-600 hover:underline">
+              Open →
+            </Link>
+          </div>
+          <FinanceSummaryCard />
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-slate-500">Upcoming</h3>
             <Link to="/calendar" className="text-sm text-emerald-600 hover:underline">
-              Open Calendar →
+              Open →
             </Link>
           </div>
           <UpcomingEvents />
@@ -233,6 +261,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CalendarPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/finance"
+            element={
+              <ProtectedRoute>
+                <FinancePage />
               </ProtectedRoute>
             }
           />

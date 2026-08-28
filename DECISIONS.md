@@ -195,3 +195,19 @@ rule validates.
 **Not done.** Per-instance overrides (move/rename/cancel one occurrence, i.e.
 `RECURRENCE-ID` + `EXDATE`) and non-UTC display rules — both land when the
 calendar UI needs them.
+
+## ADR-0015 — Money is integer cents; enforce SQLite foreign keys
+
+**Decision.** Every monetary amount is a non-negative integer number of cents,
+paired with a `TransactionKind` (`income` / `expense`) — never a float, never a
+signed amount. Balances and rollups are `SUM`s in the database, split by kind.
+Separately, the engine turns on `PRAGMA foreign_keys=ON` for every SQLite
+connection.
+
+**Why.** Floats can't represent `0.10` exactly, so they drift under addition;
+integer cents are exact and `SUM`s stay exact. A `kind` column (rather than
+sign) keeps "how much did I spend on groceries" a plain `WHERE kind='expense'`
+without `ABS`/`CASE`. SQLite ignores `ON DELETE CASCADE` / `SET NULL` unless
+asked per connection — turning it on makes local dev enforce the same referential
+actions that Postgres already does in CI and production, so the cascade tests
+mean something on both.
