@@ -147,3 +147,31 @@ alike; `values_callable` makes the stored text match the API contract
 (`"applied"`), so a raw query — or the AI assistant reading the table — sees the
 same strings the API speaks. Adding a status is then an ordinary migration
 (the CHECK is recreated in batch mode).
+
+## ADR-0012 — Kanban ordering: dense integer positions, renumber on every move
+
+**Decision.** Tasks (and columns, and subtasks) carry an integer `position` that
+is always contiguous `0..n-1` within their parent. `POST /tasks/{id}/move` takes
+`{column_id, position}`, pulls the task out, clamps the target index, re-inserts,
+and renumbers the source and target columns. The frontend does the same move
+against the cached board optimistically, then refetches.
+
+**Why.** Trivial to reason about and to assert in tests, and "what order are the
+cards in" has one obvious answer. At this scale a move rewrites a handful of
+rows.
+
+**Revisit when.** Boards get large or many people reorder the same board at once
+— then a `move` touching every sibling row is contention. The standard fix is
+fractional / lexicographic ranks (`0.5` between `0` and `1`, or a rank string) so
+a move writes one row. Deferred until there's a reason.
+
+## ADR-0013 — `user_id` denormalised onto every table
+
+**Decision.** Every row in every feature module carries `user_id`, even when it
+could be reached transitively (a subtask's owner is its task's owner is its
+project's owner).
+
+**Why.** Ownership checks stay a single `WHERE user_id = :me` on the table the
+endpoint touches — no join back to the root for a 404 decision, and one obvious
+place per resource (`_*_or_404`). The cost is keeping `user_id` correct on
+insert, which the service layer does in one spot.

@@ -51,10 +51,19 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Pagination — list is unbounded for now
 
 ## M3 — Project Management (Kanban)
-- [ ] Models: Project, Task, Subtask, Label, Comment, Attachment
-- [ ] Ordering within columns, drag-and-drop persistence
-- [ ] Priorities, deadlines, labels
-- [ ] Frontend: Kanban board, task modal, filters
+- [x] Models: Project, BoardColumn, Task, Subtask, Label (per-project), TaskComment
+- [x] User-defined columns; new project seeds "To Do / In Progress / Done"
+- [x] Dense 0..n-1 ordering; `POST /tasks/{id}/move` renumbers source + target,
+      clamps out-of-range position; column reorder endpoint
+- [x] Priorities (StrEnum), due dates, per-project labels (PUT replaces the set)
+- [x] Frontend: @dnd-kit Kanban board with optimistic drag-and-drop, task modal
+      (description, priority, due, subtasks, labels, comments), project list
+- [x] Tests: 16 — default columns, positions, within/cross-column move, clamp,
+      delete gap-close, column reorder, subtask counts, label rules, ownership
+- [ ] Attachments → later (with file upload in M2.1)
+- [ ] Board filters (by label / priority / assignee) → later
+- [ ] Optimistic reorder is best-effort (server position semantics win on refetch);
+      fractional/lexo-rank ordering is the scale answer
 
 ## M4 — Calendar
 - [ ] Models: Event, RecurrenceRule, Reminder

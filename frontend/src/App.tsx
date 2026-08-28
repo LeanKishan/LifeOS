@@ -2,11 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { StatCards } from "@/features/jobTracker/StatCards";
 import { useAuth } from "@/features/auth/AuthContext";
+import { StatCards } from "@/features/jobTracker/StatCards";
+import { useProjects } from "@/features/projects/queries";
 import { api } from "@/lib/api";
 import JobTrackerPage from "@/pages/JobTrackerPage";
 import LoginPage from "@/pages/LoginPage";
+import ProjectBoardPage from "@/pages/ProjectBoardPage";
+import ProjectsPage from "@/pages/ProjectsPage";
 import RegisterPage from "@/pages/RegisterPage";
 
 interface HealthResponse {
@@ -29,6 +32,12 @@ function HealthBadge() {
   );
 }
 
+const NAV = [
+  { to: "/", label: "Dashboard" },
+  { to: "/job-tracker", label: "Job Tracker" },
+  { to: "/projects", label: "Projects" },
+];
+
 function Header() {
   const { status, user, logout } = useAuth();
   const authed = status === "authenticated";
@@ -42,16 +51,15 @@ function Header() {
           </Link>
           {authed && (
             <nav className="flex gap-4 text-sm">
-              {[
-                { to: "/", label: "Dashboard" },
-                { to: "/job-tracker", label: "Job Tracker" },
-              ].map((item) => (
+              {NAV.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.to === "/"}
                   className={({ isActive }) =>
-                    isActive ? "font-medium text-emerald-600" : "text-slate-500 hover:text-slate-800"
+                    isActive
+                      ? "font-medium text-emerald-600"
+                      : "text-slate-500 hover:text-slate-800"
                   }
                 >
                   {item.label}
@@ -80,6 +88,19 @@ function Header() {
   );
 }
 
+function ProjectsSummary() {
+  const { data: projects = [] } = useProjects();
+  const totalTasks = projects.reduce((sum, project) => sum + project.task_count, 0);
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="text-2xl font-bold tabular-nums">{projects.length}</div>
+      <div className="text-xs text-slate-500">
+        projects · {totalTasks} task{totalTasks === 1 ? "" : "s"}
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { user } = useAuth();
   return (
@@ -91,6 +112,7 @@ function Dashboard() {
           <span className="font-medium text-slate-700 dark:text-slate-200">{user?.email}</span>.
         </p>
       </div>
+
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-medium text-slate-500">Job search</h3>
@@ -99,6 +121,16 @@ function Dashboard() {
           </Link>
         </div>
         <StatCards />
+      </section>
+
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-slate-500">Projects</h3>
+          <Link to="/projects" className="text-sm text-emerald-600 hover:underline">
+            Open Projects →
+          </Link>
+        </div>
+        <ProjectsSummary />
       </section>
     </div>
   );
@@ -125,6 +157,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <JobTrackerPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <ProjectsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectBoardPage />
               </ProtectedRoute>
             }
           />
