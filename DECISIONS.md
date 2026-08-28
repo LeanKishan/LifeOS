@@ -245,5 +245,31 @@ if payloads get expensive.
 
 **Not done.** The `ConnectionManager` is per-process — a second web worker
 wouldn't see the first's connections. Multi-worker needs the emit to go through
-Redis pub/sub with every worker subscribed; that lands with Redis in M8. The
-interface (`publish(user_id, event)`) stays the same.
+Redis pub/sub with every worker subscribed. `publish()` now mirrors each event
+onto a Redis channel as that seam, but nothing consumes it in-repo (fakeredis's
+pub/sub consumer hangs, and a real subscriber process belongs with the deploy in
+M13). Single-worker delivery is the direct in-process call.
+
+## ADR-0018 — Redis: a fakeredis dev fallback; revocation, rate limits, cache
+
+**Decision.** `REDIS_URL=fakeredis://` (the dev default) gets an in-process
+`fakeredis` server; any other URL is a real client. CI and prod run real Redis.
+Redis then backs three things:
+
+- **Token revocation.** Tokens carry a `jti` and a `gen`. `/auth/logout` denylists
+  the presented access + refresh `jti` (key TTL = the token's remaining life);
+  `/auth/logout-all` bumps a per-user `gen` counter and every check rejects tokens
+  minted under an older `gen`. `get_current_user` consults both, so logout is now
+  immediate rather than "valid until it expires" (the M1 gap).
+- **Rate limiting.** A fixed-window per-IP counter as a FastAPI dependency —
+  10/min on login, 5/min on register, `429` + `Retry-After`.
+- **Response cache.** `/finance/summary` and `/job-tracker/stats` store their JSON
+  under `cache:<channel>:<user>:v<version>:<params>` for 30 s; the M7 mutation
+  middleware `INCR`s the version, so the next read misses and recomputes. No
+  `SCAN`/`DEL` — stale keys age out on their own TTL.
+
+**Why fakeredis.** Same reason as SQLite for the DB: local dev shouldn't need a
+service running. The code path is identical (`redis-py` API); only the client
+construction differs. The `gen` counter (rather than a "tokens valid after"
+timestamp) exists because JWT `iat` is whole-second — a token minted in the same
+second as a "sign out everywhere" would otherwise slip through.

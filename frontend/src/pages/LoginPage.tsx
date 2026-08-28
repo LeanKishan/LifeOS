@@ -21,8 +21,13 @@ export default function LoginPage() {
     try {
       await login(email, password);
       navigate(location.state?.from ?? "/", { replace: true });
-    } catch {
-      setError("Incorrect email or password.");
+    } catch (err) {
+      const httpStatus = (err as { response?: { status?: number } }).response?.status;
+      setError(
+        httpStatus === 429
+          ? "Too many attempts — wait a minute and try again."
+          : "Incorrect email or password.",
+      );
     } finally {
       setBusy(false);
     }

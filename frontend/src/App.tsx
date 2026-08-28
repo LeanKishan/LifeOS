@@ -53,7 +53,7 @@ const NAV = [
 ];
 
 function Header({ live }: { live: boolean }) {
-  const { status, user, logout } = useAuth();
+  const { status, user, logout, logoutEverywhere } = useAuth();
   const authed = status === "authenticated";
 
   return (
@@ -97,10 +97,18 @@ function Header({ live }: { live: boolean }) {
               <span className="text-slate-500">{user.email}</span>
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => void logout()}
                 className="rounded-md border border-slate-300 px-2 py-1 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 Log out
+              </button>
+              <button
+                type="button"
+                onClick={() => void logoutEverywhere()}
+                title="Invalidate every session on every device"
+                className="text-xs text-slate-400 hover:text-rose-500"
+              >
+                everywhere
               </button>
             </>
           )}

@@ -8,8 +8,15 @@ import {
   type ReactNode,
 } from "react";
 
-import { AUTH_CLEARED_EVENT, getAccessToken, setTokens } from "@/lib/api";
-import { loginRequest, meRequest, registerRequest, type AuthUser } from "@/features/auth/api";
+import { AUTH_CLEARED_EVENT, getAccessToken, getRefreshToken, setTokens } from "@/lib/api";
+import {
+  loginRequest,
+  logoutAllRequest,
+  logoutRequest,
+  meRequest,
+  registerRequest,
+  type AuthUser,
+} from "@/features/auth/api";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -18,7 +25,8 @@ interface AuthContextValue {
   status: AuthStatus;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  logoutEverywhere: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -79,15 +87,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [login],
   );
 
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
     setTokens(null);
     setUser(null);
     setStatus("anonymous");
   }, []);
 
+  const logout = useCallback(async () => {
+    const refresh = getRefreshToken();
+    if (refresh) {
+      try {
+        await logoutRequest(refresh);
+      } catch {
+        /* best effort — clear locally regardless */
+      }
+    }
+    clearSession();
+  }, [clearSession]);
+
+  const logoutEverywhere = useCallback(async () => {
+    try {
+      await logoutAllRequest();
+    } catch {
+      /* best effort */
+    }
+    clearSession();
+  }, [clearSession]);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, register, logout }),
-    [user, status, login, register, logout],
+    () => ({ user, status, login, register, logout, logoutEverywhere }),
+    [user, status, login, register, logout, logoutEverywhere],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -123,10 +123,18 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Toast notifications (need a source — arrives with M9 reminders)
 
 ## M8 — Redis, hard
-- [ ] Dashboard cache with invalidation
-- [ ] Rate limiting middleware
-- [ ] Session / token-revocation store
-- [ ] Idempotency keys for mutations
+- [x] Client: `fakeredis://` dev default (no install), real Redis in CI/Compose/prod
+- [x] Token revocation: per-`jti` denylist (`/auth/logout`) + per-user generation
+      counter (`/auth/logout-all`); `get_current_user` enforces both
+- [x] Rate limiting: fixed-window per-IP dependency, 10/min login, 5/min register
+- [x] Response cache: `/finance/summary` + `/job-tracker/stats`, versioned keys,
+      busted by the M7 mutation middleware
+- [x] Frontend: Log out calls the server (real revoke), "everywhere" button,
+      429 handled on the login form
+- [x] Tests: 6 — logout revokes access + refresh, logout-all, login/register 429,
+      cache hit + bust
+- [ ] Idempotency keys for mutations → later
+- [ ] Redis pub/sub WS fan-out consumer → with the multi-worker deploy (M13)
 
 ## M9 — Background processing (Celery)
 - [ ] Worker + beat in Compose

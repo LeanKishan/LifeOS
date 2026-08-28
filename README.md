@@ -16,7 +16,8 @@ iCalendar recurrence, reminders, and month / week views · **Finance** — accou
 categorised transactions (integer cents), monthly budgets, CSV import, and a
 budget-vs-actual summary · **Learning** — courses with lessons and progress,
 plus SM-2 spaced-repetition flashcards · **Real-time** — a WebSocket push channel
-so a change on one device refreshes the others.
+so a change on one device refreshes the others · **Redis** — immediate token
+revocation, auth rate limiting, and a cached dashboard summary.
 
 ## Architecture
 
@@ -44,7 +45,7 @@ so a change on one device refreshes the others.
 | Backend         | FastAPI (Python 3.12)                   |
 | ORM / migrations| SQLAlchemy 2.0 + Alembic               |
 | Database        | SQLite (local dev) · PostgreSQL 16 (CI + prod) |
-| Cache / queue   | Redis 7 (added in a later milestone)   |
+| Cache / revocation | Redis 7 · fakeredis for local dev   |
 | Background jobs | Celery (later milestone)               |
 | Auth            | JWT access + refresh tokens            |
 | Python tooling  | uv, Ruff, mypy, pytest                 |
