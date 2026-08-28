@@ -12,14 +12,30 @@ from app.models.job_tracker import (
     Contact,
     Interview,
 )
+from app.models.projects import (
+    BoardColumn,
+    Label,
+    Project,
+    Subtask,
+    Task,
+    TaskComment,
+    TaskPriority,
+)
 from app.models.user import User
 
 __all__ = [
     "Application",
     "ApplicationStatus",
     "Base",
+    "BoardColumn",
     "Company",
     "Contact",
     "Interview",
+    "Label",
+    "Project",
+    "Subtask",
+    "Task",
+    "TaskComment",
+    "TaskPriority",
     "User",
 ]
