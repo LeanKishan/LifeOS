@@ -322,3 +322,24 @@ the same code without going through FastAPI. `create_task` reusing
 affected; the key is passed explicitly to `Anthropic(api_key=...)` rather than
 relying on ambient credentials. Tests mock the client entirely — no key, no
 network.
+
+## ADR-0021 — Analytics: the DB groups the cardinal dimensions, the app buckets time
+
+**Decision.** `/analytics/overview` runs real `GROUP BY` in SQL for the
+low-cardinality splits — open tasks by priority, applications by status, expense
+by category (`SUM` + `ORDER BY` + `LIMIT`). The time series (tasks done per week,
+lessons per week, net per month, applications per week) are computed in Python by
+fetching the relevant `(date, value)` rows for the requested range and bucketing
+them by ISO-week Monday (or `YYYY-MM`).
+
+**Why.** SQLite has no `date_trunc`; `strftime` vs `to_char` would mean a dialect
+branch in every series query. The range filter bounds the fetch to at most ~a
+year of rows per module, so bucketing in the service is cheap and reads
+identically on SQLite and Postgres. The genuinely set-shaped aggregations stay
+in SQL where they belong.
+
+**Task completion.** M3 modelled a task's state purely as which column it's in —
+no timestamp, so "throughput" and "cycle time" weren't derivable. M11 adds
+`Task.done` + `Task.completed_at` (stamped on the transition) as the minimal
+change that makes productivity analytics real, rather than inferring "done" from
+a column name.

@@ -42,7 +42,9 @@ export function TaskCard({
           onClick={() => onOpen(task.id)}
           className="min-w-0 flex-1 text-left"
         >
-          <div className="font-medium">{task.title}</div>
+          <div className={`font-medium ${task.done ? "text-slate-400 line-through" : ""}`}>
+            {task.title}
+          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span
               className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_META[task.priority].pill}`}

@@ -165,9 +165,18 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Per-user rate limit / spend cap on the endpoint → with the deploy
 
 ## M11 — Analytics
-- [ ] Aggregation queries, date-range filters
-- [ ] Productivity + finance + learning dashboards
-- [ ] CSV / PDF export
+- [x] `Task.done` + `completed_at` (8th migration) so productivity is measurable
+- [x] `GET /analytics/overview?from=&to=` (default 90d, cap 366d): productivity
+      (completion rate, avg cycle days, overdue, priority split, done-per-week),
+      finance (net-per-month, top categories), learning (maturity buckets,
+      reviews last 7d, lessons-per-week), job funnel + apps-per-week
+- [x] SQL GROUP BY for the cardinal splits; time buckets in app code (ADR-0021)
+- [x] `GET /analytics/export.{csv,pdf}`
+- [x] Frontend: date-range analytics page, inline bar / diverging-bar charts,
+      CSV + PDF download; task "done" checkbox in the Kanban modal + card
+- [x] Tests: 9 — completion + cycle, overdue, monthly net, maturity, funnel,
+      range 422, user scoping, CSV/PDF
+- [ ] Richer charts (stacked, trend lines) → polish; dataviz pass deferred
 
 ## M12 — Security pass
 - [ ] Input validation review, security headers, CSRF where relevant

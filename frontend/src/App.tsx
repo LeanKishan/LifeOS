@@ -14,6 +14,7 @@ import { Toaster } from "@/features/notifications/Toaster";
 import { useProjects } from "@/features/projects/queries";
 import { useLiveUpdates } from "@/features/realtime/useLiveUpdates";
 import { api } from "@/lib/api";
+import AnalyticsPage from "@/pages/AnalyticsPage";
 import CalendarPage from "@/pages/CalendarPage";
 import CoachPage from "@/pages/CoachPage";
 import CoursePage from "@/pages/CoursePage";
@@ -52,6 +53,7 @@ const NAV = [
   { to: "/calendar", label: "Calendar" },
   { to: "/finance", label: "Finance" },
   { to: "/learning", label: "Learning" },
+  { to: "/analytics", label: "Analytics" },
   { to: "/coach", label: "Assistant" },
 ];
 
@@ -336,6 +338,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CoursePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
               </ProtectedRoute>
             }
           />

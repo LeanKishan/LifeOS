@@ -57,14 +57,24 @@ export function TaskModal({
         <p className="text-sm text-slate-500">Loading…</p>
       ) : (
         <div className="space-y-5 text-sm">
-          <input
-            defaultValue={task.title}
-            onBlur={(event) => {
-              const value = event.target.value.trim();
-              if (value && value !== task.title) patch.mutate({ title: value });
-            }}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 font-medium outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={task.done}
+              onChange={(event) => patch.mutate({ done: event.target.checked })}
+              aria-label="Mark done"
+            />
+            <input
+              defaultValue={task.title}
+              onBlur={(event) => {
+                const value = event.target.value.trim();
+                if (value && value !== task.title) patch.mutate({ title: value });
+              }}
+              className={`w-full rounded-md border border-slate-300 px-3 py-2 font-medium outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 ${
+                task.done ? "text-slate-400 line-through" : ""
+              }`}
+            />
+          </div>
 
           <div className="flex gap-3">
             <label className="flex-1">

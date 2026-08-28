@@ -30,6 +30,8 @@ export interface TaskCard {
   priority: TaskPriority;
   due_on: string | null;
   position: number;
+  done: boolean;
+  completed_at: string | null;
   labels: Label[];
   subtask_total: number;
   subtask_done: number;
@@ -139,6 +141,7 @@ export async function updateTask(
     description?: string | null;
     priority?: TaskPriority;
     due_on?: string | null;
+    done?: boolean;
   },
 ): Promise<TaskDetail> {
   const { data } = await api.patch<TaskDetail>(`${BASE}/tasks/${taskId}`, input);

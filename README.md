@@ -20,7 +20,8 @@ so a change on one device refreshes the others · **Redis** — immediate token
 revocation, auth rate limiting, and a cached dashboard summary · **Background
 jobs** — Celery tasks for due-reminder notifications, a daily digest, and a
 monthly finance PDF · **AI assistant** — a tool-using chat that reads your data
-and can add tasks, events, and flashcards.
+and can add tasks, events, and flashcards · **Analytics** — cross-module
+productivity / finance / learning aggregates with CSV & PDF export.
 
 ## Architecture
 
