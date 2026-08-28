@@ -7,6 +7,10 @@ through the same API. One backend, one database, one auth system, shared infrast
 This repo is built **incrementally**. See [ROADMAP.md](ROADMAP.md) for the milestone plan
 and [DECISIONS.md](DECISIONS.md) for why each piece is built the way it is.
 
+**Built so far:** project foundation and CI · JWT authentication (register / login /
+refresh, route guards) · **Job Tracker** — applications with a status pipeline,
+companies, interviews, contacts, a board and table view, and search stats.
+
 ## Architecture
 
 ```

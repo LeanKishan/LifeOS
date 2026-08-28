@@ -121,3 +121,29 @@ JSON everywhere else.
 **Why.** The single worst auth misconfiguration is shipping the default signing
 key. Failing loudly at boot beats discovering it from forged tokens. In dev the
 placeholder is fine and kept at 32+ bytes so HMAC-SHA256 doesn't warn.
+
+## ADR-0010 — Feature modules: thin routes, logic in a service
+
+**Decision.** Each domain gets one module per layer — `models/<x>.py`,
+`schemas/<x>.py`, `services/<x>.py`, `api/routes/<x>.py`. Route handlers only
+translate HTTP: auth, path params, and mapping a missing/again-not-owned row to
+404 or a bad reference to 422. All querying and mutation lives in the service,
+which never imports `fastapi`.
+
+**Why.** Handlers stay readable at a glance. The service layer is callable from
+the future AI-assistant tool layer (M10) and background jobs (M9) without going
+through HTTP, and is unit-testable without a request. The `_*_or_404` helpers
+keep per-user scoping in one obvious place per resource.
+
+## ADR-0011 — Enums stored as their values, not member names
+
+**Decision.**
+`Enum(ApplicationStatus, native_enum=False, values_callable=lambda e: [m.value for m in e])`.
+
+**Why.** SQLAlchemy's default persists the member *name* (`"APPLIED"`) and, on
+Postgres, creates a native enum type that every change has to `ALTER TYPE`.
+`native_enum=False` makes it a portable `VARCHAR + CHECK` on SQLite and Postgres
+alike; `values_callable` makes the stored text match the API contract
+(`"applied"`), so a raw query — or the AI assistant reading the table — sees the
+same strings the API speaks. Adding a status is then an ordinary migration
+(the CHECK is recreated in batch mode).

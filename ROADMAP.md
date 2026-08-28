@@ -34,13 +34,21 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Role-based permissions — `is_superuser` column exists; enforcement helper comes later
 
 ## M2 — Job Tracker (first feature module)
-- [ ] Models: Company, Application, Contact, Interview, Document
-- [ ] CRUD endpoints + filtering/sorting/pagination
-- [ ] Application status pipeline (applied → OA → interview → offer/rejected)
-- [ ] Salary fields + per-user stats endpoint
-- [ ] Resume/file upload (local disk now, S3 later)
-- [ ] Frontend: board + table views, detail drawer, notes, stats cards
-- [ ] Tests: unit (stats calc) + API integration
+- [x] Models: Company, Application, Interview, Contact (user-scoped, cascade delete)
+- [x] CRUD endpoints, all scoped to the current user
+- [x] Applications filter by `?status=` and `?sort=`
+- [x] Status pipeline: wishlist → applied → assessment → interviewing → offer →
+      accepted / rejected / withdrawn
+- [x] Salary fields + `/job-tracker/stats` (by-status, active, response rate, offer rate)
+- [x] Auto-create-or-link company by name (case-insensitive) when adding an application
+- [x] Frontend: board + table views, create modal, detail drawer (inline edit +
+      interviews), dashboard stat cards
+- [x] Tests: 15 integration tests — ownership, auto-company, partial patch, filter,
+      interview cascade, stats aggregation
+- [ ] Resume / file upload (local disk now, S3 later) → M2.1
+- [ ] Contacts UI — backend + tests done, no screen yet → M2.1
+- [ ] Drag-and-drop between board columns → folded into M3 (Kanban)
+- [ ] Pagination — list is unbounded for now
 
 ## M3 — Project Management (Kanban)
 - [ ] Models: Project, Task, Subtask, Label, Comment, Attachment
