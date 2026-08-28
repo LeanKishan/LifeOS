@@ -19,7 +19,8 @@ plus SM-2 spaced-repetition flashcards · **Real-time** — a WebSocket push cha
 so a change on one device refreshes the others · **Redis** — immediate token
 revocation, auth rate limiting, and a cached dashboard summary · **Background
 jobs** — Celery tasks for due-reminder notifications, a daily digest, and a
-monthly finance PDF.
+monthly finance PDF · **AI assistant** — a tool-using chat that reads your data
+and can add tasks, events, and flashcards.
 
 ## Architecture
 
@@ -49,6 +50,7 @@ monthly finance PDF.
 | Database        | SQLite (local dev) · PostgreSQL 16 (CI + prod) |
 | Cache / revocation | Redis 7 · fakeredis for local dev   |
 | Background jobs | Celery · eager in dev, worker + beat in Compose |
+| AI              | Anthropic SDK (`claude-opus-5`), manual tool-use loop |
 | Auth            | JWT access + refresh tokens            |
 | Python tooling  | uv, Ruff, mypy, pytest                 |
 | Containers      | Docker + Docker Compose                |

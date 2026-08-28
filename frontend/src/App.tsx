@@ -15,6 +15,7 @@ import { useProjects } from "@/features/projects/queries";
 import { useLiveUpdates } from "@/features/realtime/useLiveUpdates";
 import { api } from "@/lib/api";
 import CalendarPage from "@/pages/CalendarPage";
+import CoachPage from "@/pages/CoachPage";
 import CoursePage from "@/pages/CoursePage";
 import FinancePage from "@/pages/FinancePage";
 import JobTrackerPage from "@/pages/JobTrackerPage";
@@ -51,6 +52,7 @@ const NAV = [
   { to: "/calendar", label: "Calendar" },
   { to: "/finance", label: "Finance" },
   { to: "/learning", label: "Learning" },
+  { to: "/coach", label: "Assistant" },
 ];
 
 function Header({ live }: { live: boolean }) {
@@ -334,6 +336,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CoursePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coach"
+            element={
+              <ProtectedRoute>
+                <CoachPage />
               </ProtectedRoute>
             }
           />

@@ -152,10 +152,17 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Recurring-event materialization → deferred (calendar expands on the fly)
 
 ## M10 — AI Assistant
-- [ ] Tool schema over existing API (read tasks, budgets, applications; create task/event)
-- [ ] Chat endpoint with tool-calling loop + guardrails
-- [ ] "What's due today?", "Create a task Friday 6pm", "Am I over budget?"
-- [ ] Frontend: assistant panel, streamed responses
+- [x] Manual tool-use loop against claude-opus-5 (adaptive thinking, effort=medium,
+      6-iteration cap)
+- [x] 6 tools calling the service layer directly (get_agenda, get_finance_summary,
+      list_projects, create_task, create_event, add_flashcard), all user-scoped
+- [x] `execute_tool` is fail-soft — bad input comes back as `"error: ..."`
+- [x] `POST /api/coach/chat`, stateless; no API key -> 503, rest of the app unaffected
+- [x] Frontend: chat panel with tool-call badges, suggestion chips, 503 notice
+- [x] Tests: 7 (Anthropic client mocked) — loop, tool round-trip, give-up,
+      real task creation, tool errors, endpoint 200/503
+- [ ] Streaming responses → polish
+- [ ] Per-user rate limit / spend cap on the endpoint → with the deploy
 
 ## M11 — Analytics
 - [ ] Aggregation queries, date-range filters

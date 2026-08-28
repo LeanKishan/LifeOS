@@ -294,3 +294,31 @@ actually asynchronous.
 `{"type": "notification"}` WS frames — the source M7's toast tray was waiting
 for. At-most-once delivery is a Redis `SET key NX EX` per (reminder, occurrence),
 not a DB column, because it's ephemeral and self-expiring.
+
+## ADR-0020 — AI assistant: a manual loop, tools *are* the service layer
+
+**Decision.** `/api/coach/chat` runs a hand-written
+`while stop_reason == "tool_use"` loop against `claude-opus-5` (adaptive
+thinking, `effort=medium`, capped at 6 iterations). The six tools call the same
+`app.services.*` functions the HTTP routes call — not the routes — so there's no
+loopback request, and every call is passed the request's `db` session and
+`user_id`. `execute_tool` catches `LookupError`/`ValueError`/`KeyError` and
+returns `"error: ..."` as the tool result instead of raising, so the model
+recovers from a bad project name or malformed date on its own. The endpoint is
+stateless: the client resends the whole message history, mirroring the Messages
+API itself.
+
+**Why a manual loop over the SDK Tool Runner.** The loop is ~15 lines, it's the
+thing to be able to explain in an interview, and it needs no beta surface. The
+Tool Runner would save the boilerplate but hides exactly the part worth
+understanding.
+
+**Why tools = services.** ADR-0010 kept all logic out of the routes for this
+moment: the assistant, Celery tasks (M9), and a future mobile client all reach
+the same code without going through FastAPI. `create_task` reusing
+`projects_svc.create_task` means the assistant can't drift from the app's rules.
+
+**Config.** `ANTHROPIC_API_KEY` empty → the endpoint 503s and nothing else is
+affected; the key is passed explicitly to `Anthropic(api_key=...)` rather than
+relying on ambient credentials. Tests mock the client entirely — no key, no
+network.
