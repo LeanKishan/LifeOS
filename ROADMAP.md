@@ -23,14 +23,15 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] `docker compose up` verified end to end (blocked on Docker/WSL2)
 
 ## M1 — Authentication
-- [ ] `User` model + first Alembic migration
-- [ ] Register / login / refresh / logout endpoints
-- [ ] `get_current_user` dependency, protected-route pattern
-- [ ] Refresh-token rotation, token revocation list (Redis)
-- [ ] Frontend: auth context, login/register pages, protected routes, silent refresh
+- [x] `User` model + first Alembic migration (batch mode: applies on SQLite + Postgres)
+- [x] `register` / `login` / `refresh` / `me` endpoints (logout is a client-side token clear)
+- [x] `get_current_user` / `get_current_active_user` dependencies, protected-route pattern
+- [x] Frontend: auth context, login/register pages, route guards, silent refresh on 401
+- [x] Tests: register/login/refresh happy paths + wrong password, garbage/expired/wrong-type token
+- [x] Production guard: app refuses to boot with a weak or default `JWT_SECRET`
+- [ ] Refresh-token rotation + revocation list (Redis) — deferred to M8
 - [ ] OAuth login (Google)
-- [ ] Role-based permissions (user / admin)
-- [ ] Tests: auth flows, expired/invalid tokens
+- [ ] Role-based permissions — `is_superuser` column exists; enforcement helper comes later
 
 ## M2 — Job Tracker (first feature module)
 - [ ] Models: Company, Application, Contact, Interview, Document

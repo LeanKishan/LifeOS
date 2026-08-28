@@ -84,3 +84,40 @@ for routing, Tailwind for styling.
 gives one obvious place for the API contract to live per feature. Vite keeps the
 dev loop fast. Tailwind keeps styling in the component and avoids a growing pile
 of CSS files.
+
+## ADR-0007 — Tokens in localStorage, transparent refresh on 401
+
+**Decision.** The SPA keeps the access and refresh tokens in `localStorage`. An
+axios request interceptor attaches the access token; a response interceptor
+catches a 401, calls `/auth/refresh` once (concurrent 401s are coalesced onto one
+refresh), retries the original request, and on failure clears the tokens and
+drops to the login screen via a `lifeos:auth-cleared` window event.
+
+**Why.** Simplest thing that works for a separate SPA and API with no shared
+cookie domain, and it keeps the API purely stateless / CORS-simple.
+
+**Trade-off.** `localStorage` is readable by any script, so an XSS bug leaks
+tokens. What actually limits the blast radius: a short access-token lifetime
+(30 min) now, and refresh-token rotation + a Redis revocation list in M8 so a
+stolen refresh token can be killed. The httpOnly-cookie + CSRF-token design is
+the fallback if requirements tighten.
+
+## ADR-0008 — `OAuth2PasswordRequestForm` for login; email in the `username` field
+
+**Decision.** `/auth/login` takes `application/x-www-form-urlencoded`
+(`username`, `password`) via FastAPI's `OAuth2PasswordRequestForm`; `username`
+carries the email. `register` and `refresh` stay JSON.
+
+**Why.** Makes the Swagger UI "Authorize" button work with zero extra wiring and
+matches the OAuth2 password-flow shape that the `OAuth2PasswordBearer` scheme
+already documents. The frontend sends one `URLSearchParams` body for login and
+JSON everywhere else.
+
+## ADR-0009 — App refuses to start with a weak `JWT_SECRET` in production
+
+**Decision.** `Settings.model_post_init` raises if `ENVIRONMENT=production` and
+`JWT_SECRET` is missing, the dev placeholder, or shorter than 32 bytes.
+
+**Why.** The single worst auth misconfiguration is shipping the default signing
+key. Failing loudly at boot beats discovering it from forged tokens. In dev the
+placeholder is fine and kept at 32+ bytes so HMAC-SHA256 doesn't warn.
