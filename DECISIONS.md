@@ -509,3 +509,34 @@ delivered to its own sockets directly, so this avoids double-send. It's started
 from the lifespan only when Redis is real (`fakeredis`'s pub/sub consumer
 blocks), so dev and the test suite stay single-process and never run it; the
 delivery-decision function is unit-tested in isolation.
+
+## ADR-0025 — Mobile: an Expo app that shares the API contract, not code
+
+**Decision.** `mobile/` is a standalone Expo (React Native) app — its own
+`package.json` and toolchain, a sibling of `backend/` and `frontend/`, not a
+workspace package. It uses `expo-router` (file routes in `app/`), TanStack Query,
+and an axios client that is a line-for-line port of the web client's
+request/response interceptors — same Bearer header, same single-flight refresh
+on 401, same `/auth/refresh` contract — changed only where the platform forces
+it: tokens go in `expo-secure-store` (async, device keychain) instead of
+`localStorage`, and "auth cleared" is a listener set instead of a DOM event.
+
+**Why not a shared `packages/api-client`.** The interceptor body is ~40 lines and
+the divergent parts (storage is async on device, sync on web; no `window`) are
+exactly the parts a shared module would have to abstract, for two consumers. A
+monorepo workspace + build step + a third `tsconfig` project reference is more
+moving parts than the duplication removes. The contract is enforced where it
+actually matters — the FastAPI response models — and drift shows up as a failed
+request, not a silent mismatch. If a third client appears, revisit.
+
+**Scope.** Sign in / register, a dashboard (`/job-tracker/stats` +
+`/analytics/overview`), a filterable applications list, and an application detail
+screen with inline status changes. Enough to prove the auth flow and the
+read/write path on a real device.
+
+**Verification.** No simulator in this environment or in CI, so the gate is
+`tsc --noEmit` + `eslint` (a `mobile` job in `ci.yml`). `typedRoutes` is off so
+route hrefs typecheck without the `expo start`-generated `.expo/types`.
+
+**Deferred.** Live updates (the WS hook isn't ported); push notifications;
+offline cache persistence; the other feature modules; EAS build/submit config.

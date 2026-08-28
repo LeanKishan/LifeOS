@@ -236,4 +236,14 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Alert routing beyond email (PagerDuty/Slack) → later
 
 ## M15 — Mobile (React Native)
-- [ ] Shared API client, auth, dashboard + job tracker screens
+- [x] Expo + `expo-router` app in `mobile/` (standalone, sibling of
+      `backend/` / `frontend/`); ADR-0025
+- [x] axios client ported from the web (Bearer header, single-flight refresh on
+      401), tokens in `expo-secure-store`
+- [x] Auth: sign in / register / sign out, route guards via an `AuthProvider`
+- [x] Dashboard — `/job-tracker/stats` + a 90-day `/analytics/overview` summary
+- [x] Applications — status-filtered list; detail screen with inline status
+      change, interviews, notes
+- [x] CI `mobile` job: `tsc --noEmit` + `eslint`
+- [ ] Live updates (WS hook not ported), push notifications, offline cache
+- [ ] Remaining feature modules; EAS build/submit → later

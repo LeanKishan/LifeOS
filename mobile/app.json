@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "LifeOS",
+    "slug": "lifeos-mobile",
+    "scheme": "lifeos",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lifeos.mobile"
+    },
+    "android": {
+      "package": "com.lifeos.mobile"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8000/api"
+    }
+  }
+}

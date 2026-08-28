@@ -30,14 +30,16 @@ with RDS, ElastiCache, S3 and a GitHub-OIDC release pipeline
 (see [infra/README.md](infra/README.md)) · **Monitoring** — structured JSON
 logs, per-request IDs, Prometheus metrics with a Grafana dashboard, optional
 Sentry, a readiness probe, and a Redis pub/sub WebSocket fan-out so live updates
-survive multiple API instances.
+survive multiple API instances · **Mobile** — an Expo (React Native) app in
+`mobile/` sharing the API contract: auth, a dashboard, and the job tracker
+(see [mobile/README.md](mobile/README.md)).
 
 ## Architecture
 
 ```
-                 React + Vite (SPA)
-                        |
-                     HTTP / JSON
+        React + Vite (SPA)   Expo (React Native)
+                   \             /
+                    HTTP / JSON
                         |
                  FastAPI (Python)
         ________________|________________
@@ -52,6 +54,7 @@ survive multiple API instances.
 | Area            | Choice                                  |
 | --------------- | --------------------------------------- |
 | Frontend        | React 19 + TypeScript + Vite            |
+| Mobile          | Expo (React Native) + expo-router      |
 | Styling         | Tailwind CSS                            |
 | Server state    | TanStack Query                          |
 | Routing         | React Router                            |
@@ -154,6 +157,9 @@ frontend/
     pages/       route-level screens
     components/   shared UI
   docker/        nginx.conf for the static prod image
+mobile/          Expo (React Native) app — auth + dashboard + job tracker
+  app/           expo-router file routes
+  src/           api client, auth, feature hooks, UI
 infra/
   *.tf           Terraform — ECS Fargate stack
   bootstrap/     one-off remote-state bucket + lock table
