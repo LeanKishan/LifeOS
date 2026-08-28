@@ -273,3 +273,24 @@ service running. The code path is identical (`redis-py` API); only the client
 construction differs. The `gen` counter (rather than a "tokens valid after"
 timestamp) exists because JWT `iat` is whole-second — a token minted in the same
 second as a "sign out everywhere" would otherwise slip through.
+
+## ADR-0019 — Celery: eager in dev, a real worker in Compose
+
+**Decision.** `CELERY_EAGER=true` (the dev/test default) makes `.delay()` run the
+task synchronously in the caller with exceptions propagated — no broker, no
+worker. Compose sets it `false` and runs `worker` + `beat` services against a
+Redis broker. Tasks open their own DB session via `app.core.db.SessionLocal`
+(they're outside a request); the test fixture repoints that name at the
+in-memory engine so an eager task sees the request's data.
+
+**Why.** A background job is only "background" in production; for a single
+developer, running it inline is indistinguishable and needs nothing installed.
+The task *code* is identical either way, so the eager path still exercises it.
+Tasks that must be async in prod (a slow PDF render, fan-out over every user)
+are written as tasks now; flipping the flag is the only change to make them
+actually asynchronous.
+
+**Notifications.** `dispatch_due_reminders` is the first producer of
+`{"type": "notification"}` WS frames — the source M7's toast tray was waiting
+for. At-most-once delivery is a Redis `SET key NX EX` per (reminder, occurrence),
+not a DB column, because it's ephemeral and self-expiring.

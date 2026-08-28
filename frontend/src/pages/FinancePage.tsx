@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { Modal } from "@/components/Modal";
 import * as fin from "@/features/finance/api";
 import type { TransactionKind } from "@/features/finance/api";
+import { pushToast } from "@/features/notifications/toasts";
 import { BudgetPanel } from "@/features/finance/BudgetPanel";
 import { TransactionForm } from "@/features/finance/TransactionForm";
 import { currentMonth, formatCents } from "@/features/finance/money";
@@ -37,6 +38,23 @@ export default function FinancePage() {
   const importCsv = useFinanceMutation(fin.importTransactions);
   const removeTxn = useFinanceMutation(fin.deleteTransaction);
   const createAccount = useFinanceMutation(fin.createAccount);
+
+  async function downloadReport(): Promise<void> {
+    try {
+      await fin.requestReport(month);
+      const blob = await fin.fetchReport(month);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `finance-${month}.pdf`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      pushToast({
+        message: "Report is generating — you'll get a notification when it's ready.",
+      });
+    }
+  }
 
   const categoryName = (id: number | null): string =>
     id === null ? "—" : (categories.find((c) => c.id === id)?.name ?? "—");
@@ -78,6 +96,13 @@ export default function FinancePage() {
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
             Import CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => void downloadReport()}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+          >
+            Report PDF
           </button>
           <button
             type="button"

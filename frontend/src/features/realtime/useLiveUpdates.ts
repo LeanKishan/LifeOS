@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { pushToast, type ToastLevel } from "@/features/notifications/toasts";
 import { getAccessToken } from "@/lib/api";
 
 const WS_PATH = "/api/ws";
@@ -48,8 +49,14 @@ export function useLiveUpdates(enabled: boolean): { connected: boolean } {
 
       socket.onmessage = (event) => {
         try {
-          const frame = JSON.parse(String(event.data)) as { type?: string };
-          if (frame.type && frame.type !== "connected") {
+          const frame = JSON.parse(String(event.data)) as {
+            type?: string;
+            message?: string;
+            level?: ToastLevel;
+          };
+          if (frame.type === "notification" && frame.message) {
+            pushToast({ message: frame.message, level: frame.level });
+          } else if (frame.type && frame.type !== "connected") {
             void queryClient.invalidateQueries({ queryKey: [frame.type] });
           }
         } catch {

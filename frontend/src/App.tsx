@@ -10,6 +10,7 @@ import { currentMonth, formatCents } from "@/features/finance/money";
 import { useSummary } from "@/features/finance/queries";
 import { StatCards } from "@/features/jobTracker/StatCards";
 import { useCourses, useReviewCount } from "@/features/learning/queries";
+import { Toaster } from "@/features/notifications/Toaster";
 import { useProjects } from "@/features/projects/queries";
 import { useLiveUpdates } from "@/features/realtime/useLiveUpdates";
 import { api } from "@/lib/api";
@@ -267,6 +268,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Header live={connected} />
+      <Toaster />
       <main className="mx-auto max-w-5xl px-6 py-10">
         <Routes>
           <Route path="/login" element={<LoginPage />} />

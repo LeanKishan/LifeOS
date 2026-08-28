@@ -137,10 +137,19 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Redis pub/sub WS fan-out consumer → with the multi-worker deploy (M13)
 
 ## M9 — Background processing (Celery)
-- [ ] Worker + beat in Compose
-- [ ] Monthly financial report → PDF → notification
-- [ ] Email reminders, recurring-event materialization
-- [ ] Task status surfaced in the UI
+- [x] Celery app; `task_always_eager` in dev/tests (no broker), `worker` + `beat`
+      services in Compose against a Redis broker
+- [x] `generate_finance_report` — reportlab PDF -> Redis (7-day TTL) -> notification;
+      `POST /finance/reports` enqueues, `GET /finance/reports/{month}` streams it
+- [x] `dispatch_due_reminders` (beat 60s) -> `{type: notification}` WS frames,
+      at-most-once via a Redis SET NX key per (reminder, occurrence)
+- [x] `send_daily_digest` (beat 07:00) -> one summary notification per user
+- [x] Frontend: toast tray (`<Toaster>`) fed by notification frames; "Report PDF"
+      button on the finance page
+- [x] Tests: 5 — report renders %PDF + notifies, endpoint enqueues+serves,
+      reminder fires once then dedups, digest
+- [ ] Email delivery (notifications are in-app only for now)
+- [ ] Recurring-event materialization → deferred (calendar expands on the fly)
 
 ## M10 — AI Assistant
 - [ ] Tool schema over existing API (read tasks, budgets, applications; create task/event)

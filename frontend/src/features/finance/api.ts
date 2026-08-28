@@ -142,3 +142,12 @@ export async function setBudget(input: {
 }): Promise<Budget> {
   return (await api.post<Budget>(`${BASE}/budgets`, input)).data;
 }
+
+export async function requestReport(month: string): Promise<void> {
+  await api.post(`${BASE}/reports`, { month });
+}
+
+export async function fetchReport(month: string): Promise<Blob> {
+  const { data } = await api.get(`${BASE}/reports/${month}`, { responseType: "blob" });
+  return data as Blob;
+}
