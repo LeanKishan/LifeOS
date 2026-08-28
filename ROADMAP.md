@@ -1,0 +1,113 @@
+# LifeOS Roadmap
+
+Built one milestone at a time. Each milestone is a vertical slice that ends
+with something running, tested, and committed. Everything from the original
+brief is in here — nothing is dropped, it is sequenced.
+
+Legend: `[x]` done · `[~]` in progress · `[ ]` planned
+
+---
+
+## M0 — Foundation
+- [x] Monorepo, git, `.gitignore`
+- [x] FastAPI skeleton (`/`, `/api/health`), app factory, CORS
+- [x] Config via `pydantic-settings`
+- [x] SQLAlchemy 2.0 engine + session dependency
+- [x] Alembic wired to model metadata
+- [x] Password hashing + JWT helpers (argon2, access/refresh)
+- [x] React + Vite + TS + Tailwind + Router + TanStack Query
+- [x] API client with auth-header interceptor
+- [x] `docker-compose.yml` — db, redis, backend, frontend
+- [x] GitHub Actions CI — lint, type-check, test, build
+- [ ] `docker compose up` verified end to end (needs Docker Desktop)
+
+## M1 — Authentication
+- [ ] `User` model + first Alembic migration
+- [ ] Register / login / refresh / logout endpoints
+- [ ] `get_current_user` dependency, protected-route pattern
+- [ ] Refresh-token rotation, token revocation list (Redis)
+- [ ] Frontend: auth context, login/register pages, protected routes, silent refresh
+- [ ] OAuth login (Google)
+- [ ] Role-based permissions (user / admin)
+- [ ] Tests: auth flows, expired/invalid tokens
+
+## M2 — Job Tracker (first feature module)
+- [ ] Models: Company, Application, Contact, Interview, Document
+- [ ] CRUD endpoints + filtering/sorting/pagination
+- [ ] Application status pipeline (applied → OA → interview → offer/rejected)
+- [ ] Salary fields + per-user stats endpoint
+- [ ] Resume/file upload (local disk now, S3 later)
+- [ ] Frontend: board + table views, detail drawer, notes, stats cards
+- [ ] Tests: unit (stats calc) + API integration
+
+## M3 — Project Management (Kanban)
+- [ ] Models: Project, Task, Subtask, Label, Comment, Attachment
+- [ ] Ordering within columns, drag-and-drop persistence
+- [ ] Priorities, deadlines, labels
+- [ ] Frontend: Kanban board, task modal, filters
+
+## M4 — Calendar
+- [ ] Models: Event, RecurrenceRule, Reminder
+- [ ] Recurring events (RRULE), reminders
+- [ ] Link events to projects/applications
+- [ ] Frontend: month/week views
+
+## M5 — Finance
+- [ ] Models: Account, Transaction, Category, Budget, Bill, Subscription
+- [ ] Monthly rollups, savings rate, budget-vs-actual (SQL aggregation)
+- [ ] CSV import
+- [ ] Frontend: charts, budget editor
+
+## M6 — Learning Management
+- [ ] Models: Course, Lesson, Note, Flashcard, Quiz, LearningGoal
+- [ ] Spaced-repetition review queue
+- [ ] Progress bars per subject
+- [ ] Frontend: course view, flashcard review
+
+## M7 — Real-time
+- [ ] WebSocket endpoint + connection manager
+- [ ] Live dashboard updates, notifications
+- [ ] Collaborative task updates
+- [ ] Frontend: socket hook, toast notifications
+
+## M8 — Redis, hard
+- [ ] Dashboard cache with invalidation
+- [ ] Rate limiting middleware
+- [ ] Session / token-revocation store
+- [ ] Idempotency keys for mutations
+
+## M9 — Background processing (Celery)
+- [ ] Worker + beat in Compose
+- [ ] Monthly financial report → PDF → notification
+- [ ] Email reminders, recurring-event materialization
+- [ ] Task status surfaced in the UI
+
+## M10 — AI Assistant
+- [ ] Tool schema over existing API (read tasks, budgets, applications; create task/event)
+- [ ] Chat endpoint with tool-calling loop + guardrails
+- [ ] "What's due today?", "Create a task Friday 6pm", "Am I over budget?"
+- [ ] Frontend: assistant panel, streamed responses
+
+## M11 — Analytics
+- [ ] Aggregation queries, date-range filters
+- [ ] Productivity + finance + learning dashboards
+- [ ] CSV / PDF export
+
+## M12 — Security pass
+- [ ] Input validation review, security headers, CSRF where relevant
+- [ ] Rate limiting on auth, secrets management
+- [ ] Dependency + container scanning in CI
+- [ ] Self-pentest notes
+
+## M13 — Deployment (AWS)
+- [ ] Production Dockerfiles (multi-stage), migrations on release
+- [ ] Managed Postgres + Redis, load balancer, object storage
+- [ ] IaC (Terraform), deploy from CI
+
+## M14 — Monitoring
+- [ ] Structured logging, request metrics
+- [ ] Prometheus + Grafana in Compose, then in cloud
+- [ ] Error tracking, uptime checks
+
+## M15 — Mobile (React Native)
+- [ ] Shared API client, auth, dashboard + job tracker screens
