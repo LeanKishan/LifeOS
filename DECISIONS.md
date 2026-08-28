@@ -211,3 +211,18 @@ without `ABS`/`CASE`. SQLite ignores `ON DELETE CASCADE` / `SET NULL` unless
 asked per connection — turning it on makes local dev enforce the same referential
 actions that Postgres already does in CI and production, so the cascade tests
 mean something on both.
+
+## ADR-0016 — Flashcard scheduling is SM-2, as a pure function
+
+**Decision.** `learning.apply_sm2(card, quality, today)` mutates a card's
+`ease_factor`, `interval_days`, `repetitions`, and `due_on` in place, using the
+standard SuperMemo-2 formulas. `today` is a parameter, not `date.today()`. The
+review endpoint calls it with the real date; the tests call the function
+directly with a fixed date.
+
+**Why.** Spaced-repetition scheduling is the one piece of real algorithmic
+behaviour in this module and it has fiddly edge cases (first three reps are
+special-cased, ease has a 1.3 floor, a lapse resets the streak). Keeping it a
+pure `(card, quality, today) -> None` makes every case a two-line unit test with
+no database or HTTP. SM-2 itself is chosen because it's well documented and
+"good enough" — swapping in FSRS later is a change to this one function.

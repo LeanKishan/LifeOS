@@ -9,11 +9,14 @@ import { useOccurrences } from "@/features/calendar/queries";
 import { currentMonth, formatCents } from "@/features/finance/money";
 import { useSummary } from "@/features/finance/queries";
 import { StatCards } from "@/features/jobTracker/StatCards";
+import { useCourses, useReviewCount } from "@/features/learning/queries";
 import { useProjects } from "@/features/projects/queries";
 import { api } from "@/lib/api";
 import CalendarPage from "@/pages/CalendarPage";
+import CoursePage from "@/pages/CoursePage";
 import FinancePage from "@/pages/FinancePage";
 import JobTrackerPage from "@/pages/JobTrackerPage";
+import LearningPage from "@/pages/LearningPage";
 import LoginPage from "@/pages/LoginPage";
 import ProjectBoardPage from "@/pages/ProjectBoardPage";
 import ProjectsPage from "@/pages/ProjectsPage";
@@ -45,6 +48,7 @@ const NAV = [
   { to: "/projects", label: "Projects" },
   { to: "/calendar", label: "Calendar" },
   { to: "/finance", label: "Finance" },
+  { to: "/learning", label: "Learning" },
 ];
 
 function Header() {
@@ -159,6 +163,19 @@ function FinanceSummaryCard() {
   );
 }
 
+function LearningCard() {
+  const { data: courses = [] } = useCourses();
+  const { data: due = [] } = useReviewCount();
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <div className="text-2xl font-bold tabular-nums">{due.length}</div>
+      <div className="text-xs text-slate-500">
+        cards due · {courses.length} course{courses.length === 1 ? "" : "s"}
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { user } = useAuth();
   return (
@@ -181,7 +198,7 @@ function Dashboard() {
         <StatCards />
       </section>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-slate-500">Projects</h3>
@@ -200,6 +217,16 @@ function Dashboard() {
             </Link>
           </div>
           <FinanceSummaryCard />
+        </section>
+
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-500">Learning</h3>
+            <Link to="/learning" className="text-sm text-emerald-600 hover:underline">
+              Open →
+            </Link>
+          </div>
+          <LearningCard />
         </section>
 
         <section>
@@ -269,6 +296,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <FinancePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learning"
+            element={
+              <ProtectedRoute>
+                <LearningPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learning/courses/:courseId"
+            element={
+              <ProtectedRoute>
+                <CoursePage />
               </ProtectedRoute>
             }
           />

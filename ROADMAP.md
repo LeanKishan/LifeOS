@@ -97,10 +97,17 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [ ] Recurring-transaction generation from bills → M9 (Celery)
 
 ## M6 — Learning Management
-- [ ] Models: Course, Lesson, Note, Flashcard, Quiz, LearningGoal
-- [ ] Spaced-repetition review queue
-- [ ] Progress bars per subject
-- [ ] Frontend: course view, flashcard review
+- [x] Models: Course, Lesson (ordered, completed), Note, Flashcard (SM-2 state),
+      LearningGoal
+- [x] SM-2 spaced repetition (`apply_sm2`, unit-tested pure function)
+- [x] `GET /learning/review` due-today queue + `POST /flashcards/{id}/review`
+- [x] Course progress (lessons_completed / lesson_count) + flashcards_due count
+- [x] Frontend: course list with progress bars, course detail (lessons /
+      flashcards / notes), flashcard review session (flip + Again/Hard/Good/Easy)
+- [x] Tests: 15 — SM-2 (good/fail/ease-floor/bad-quality), review queue + scope,
+      progress, lesson complete/uncomplete, reorder, cascade
+- [ ] Quizzes → later
+- [ ] Goal progress % → later
 
 ## M7 — Real-time
 - [ ] WebSocket endpoint + connection manager

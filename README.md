@@ -14,7 +14,8 @@ companies, interviews, contacts, a board and table view, and search stats ·
 subtasks / comments, and a drag-and-drop board · **Calendar** — events with
 iCalendar recurrence, reminders, and month / week views · **Finance** — accounts,
 categorised transactions (integer cents), monthly budgets, CSV import, and a
-budget-vs-actual summary.
+budget-vs-actual summary · **Learning** — courses with lessons and progress,
+plus SM-2 spaced-repetition flashcards.
 
 ## Architecture
 
