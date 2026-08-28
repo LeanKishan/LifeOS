@@ -18,8 +18,9 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [x] React + Vite + TS + Tailwind + Router + TanStack Query
 - [x] API client with auth-header interceptor
 - [x] `docker-compose.yml` — db, redis, backend, frontend
-- [x] GitHub Actions CI — lint, type-check, test, build
-- [ ] `docker compose up` verified end to end (needs Docker Desktop)
+- [x] GitHub Actions CI — lint, type-check, migrate + test on real Postgres, build
+- [x] Local dev on SQLite (no local virtualization for Docker — see ADR-0004)
+- [ ] `docker compose up` verified end to end (blocked on Docker/WSL2)
 
 ## M1 — Authentication
 - [ ] `User` model + first Alembic migration

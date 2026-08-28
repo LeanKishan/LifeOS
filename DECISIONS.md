@@ -41,14 +41,26 @@ dependency group.
 gives reproducible installs locally, in CI, and in the Docker build. `pip install
 uv` and no build back-end needed (`package = false`).
 
-## ADR-0004 — PostgreSQL from day one, via Docker Compose
+## ADR-0004 — PostgreSQL for CI and production; SQLite for local dev
 
-**Decision.** No SQLite phase. Postgres 16 in Compose, Alembic migrations from
-the first model.
+**Decision.** Postgres 16 is the real database — it runs in Docker Compose, as a
+service container in CI, and in production. Local development falls back to a
+SQLite file when no `DATABASE_URL` is set. Alembic migrations run from the first
+model, in batch mode so they apply on both engines.
 
-**Why.** SQLite hides real behaviour (types, constraints, concurrency, JSONB,
-window functions used later in analytics). Compose makes "one command, whole
-stack" true, which is also a target skill.
+**Why.** The original plan was Postgres everywhere via Compose. This machine
+can't run Docker Desktop (no hardware virtualization / broken WSL2), and a native
+Postgres install needs admin rights and manual role setup. Rather than block the
+whole project on infrastructure, local dev uses SQLite — zero setup — while every
+push still runs the full test suite and `alembic upgrade head` against a real
+Postgres in GitHub Actions. CI, not the laptop, is the source of truth for DB
+behaviour.
+
+**Trade-off.** SQLite and Postgres diverge (types, constraints, concurrency, no
+JSONB / arrays / window functions). Mitigations: keep models dialect-portable,
+lean on CI to catch anything SQLite lets slide, and require Postgres from the
+milestone where PG-specific features first appear (analytics). Flipping local dev
+back to Postgres is one env var once Docker or a native install is available.
 
 ## ADR-0005 — JWT access + refresh tokens for auth
 

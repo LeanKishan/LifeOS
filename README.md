@@ -32,7 +32,7 @@ and [DECISIONS.md](DECISIONS.md) for why each piece is built the way it is.
 | Routing         | React Router                            |
 | Backend         | FastAPI (Python 3.12)                   |
 | ORM / migrations| SQLAlchemy 2.0 + Alembic               |
-| Database        | PostgreSQL 16                           |
+| Database        | SQLite (local dev) · PostgreSQL 16 (CI + prod) |
 | Cache / queue   | Redis 7 (added in a later milestone)   |
 | Background jobs | Celery (later milestone)               |
 | Auth            | JWT access + refresh tokens            |
@@ -42,36 +42,38 @@ and [DECISIONS.md](DECISIONS.md) for why each piece is built the way it is.
 
 ## Prerequisites
 
-- **Docker Desktop** — install: `winget install -e --id Docker.DockerDesktop`, then reboot.
-- Node 20+ and Python 3.12+ only needed if you want to run a service outside Docker.
+- Node 20+ and Python 3.12+ (the backend uses [uv](https://docs.astral.sh/uv/)).
+- Docker is optional locally — see "Full stack with Postgres" below. CI and
+  production always run against Postgres.
 
 ## Quickstart
+
+```bash
+# backend  ->  http://localhost:8000  (docs at /docs)
+cd backend
+uv sync
+uv run uvicorn app.main:app --reload
+
+# frontend ->  http://localhost:5173
+cd frontend
+npm install
+npm run dev
+```
+
+With no `DATABASE_URL` set, the backend uses a local SQLite file
+(`backend/lifeos.db`), so `/api/health` reports `database: ok` out of the box.
+
+## Full stack with Postgres (needs Docker)
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-- Frontend: http://localhost:5173
-- API docs: http://localhost:8000/docs
-- Health:   http://localhost:8000/api/health
-
-## Running a service directly (no Docker)
-
-```bash
-# backend
-cd backend
-uv sync
-uv run uvicorn app.main:app --reload      # http://localhost:8000
-
-# frontend
-cd frontend
-npm install
-npm run dev                               # http://localhost:5173
-```
-
-Without a database running, `/api/health` reports `database: unavailable` but the API
-still serves — bring up Postgres (`docker compose up db`) for full function.
+Brings up Postgres, Redis, backend, and frontend together. This mirrors CI and
+the deployment target. If Docker Desktop won't start (it needs hardware
+virtualization / a working WSL2), the Quickstart path above is fully functional
+without it.
 
 ## Repo layout
 

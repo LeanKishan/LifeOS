@@ -11,6 +11,23 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      # The real database the suite runs against, even though local dev uses SQLite.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lifeos
+          POSTGRES_PASSWORD: lifeos
+          POSTGRES_DB: lifeos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lifeos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://lifeos:lifeos@localhost:5432/lifeos
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -22,6 +39,8 @@ jobs:
         run: uv run ruff check .
       - name: Type-check
         run: uv run mypy app
+      - name: Migrate
+        run: uv run alembic upgrade head
       - name: Test
         run: uv run pytest
 

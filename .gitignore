@@ -28,5 +28,9 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
+# Local databases
+*.db
+*.sqlite3
+
 # Misc
 *.log

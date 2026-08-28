@@ -10,8 +10,9 @@ class Settings(BaseSettings):
 
     environment: str = "development"
 
-    # Database / cache
-    database_url: str = "postgresql+psycopg://lifeos:lifeos@localhost:5432/lifeos"
+    # Local dev defaults to a zero-setup SQLite file. Docker Compose, CI, and
+    # production all override this with a real Postgres URL.
+    database_url: str = "sqlite:///./lifeos.db"
     redis_url: str = "redis://localhost:6379/0"
 
     # Auth
