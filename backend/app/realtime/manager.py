@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 from typing import Any, Protocol
+
+from app.core.redis import get_redis
+
+LIVE_CHANNEL = "lifeos:live"
 
 
 class _Sendable(Protocol):
@@ -11,11 +16,7 @@ class _Sendable(Protocol):
 
 
 class ConnectionManager:
-    """Tracks live WebSocket connections per user, in this process only.
-
-    Multi-worker deployments need a Redis pub/sub fan-out in front of this
-    (see ADR-0017); the interface here stays the same.
-    """
+    """Tracks live WebSocket connections for *this* process."""
 
     def __init__(self) -> None:
         self._by_user: dict[int, set[_Sendable]] = {}
@@ -49,13 +50,18 @@ manager = ConnectionManager()
 
 
 def publish(user_id: int, event: dict[str, Any]) -> None:
-    """Fan an event out to a user's sockets from synchronous code.
+    """Deliver an event to a user's sockets on this process, and mirror it onto a
+    Redis channel.
 
-    Request handlers run in a threadpool, so this hops back onto the server's
-    event loop. A no-op when no WebSocket server is running (e.g. plain tests).
+    The direct call is what actually reaches browsers with a single worker (dev,
+    and one uvicorn process). The Redis publish is the seam a standalone
+    subscriber process would consume to fan out across workers in a real
+    multi-process deployment; nothing in this repo consumes it yet (ADR-0017).
     """
     loop = manager.loop
-    if loop is None or loop.is_closed():
-        return
-    with contextlib.suppress(RuntimeError):
-        asyncio.run_coroutine_threadsafe(manager.send_to_user(user_id, event), loop)
+    if loop is not None and not loop.is_closed():
+        with contextlib.suppress(RuntimeError):
+            asyncio.run_coroutine_threadsafe(manager.send_to_user(user_id, event), loop)
+
+    with contextlib.suppress(Exception):
+        get_redis().publish(LIVE_CHANNEL, json.dumps({"user_id": user_id, "event": event}))

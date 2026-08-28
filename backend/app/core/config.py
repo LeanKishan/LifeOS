@@ -13,10 +13,10 @@ class Settings(BaseSettings):
 
     environment: str = "development"
 
-    # Local dev defaults to a zero-setup SQLite file. Docker Compose, CI, and
-    # production all override this with a real Postgres URL.
+    # Local dev defaults are zero-setup: a SQLite file and an in-process
+    # fake Redis. Compose, CI, and production override both with real URLs.
     database_url: str = "sqlite:///./lifeos.db"
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "fakeredis://"
 
     # Auth
     jwt_secret: str = DEV_JWT_SECRET

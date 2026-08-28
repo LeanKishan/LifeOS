@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, RedisDep
+from app.core.cache import cache_version, cached_json, store_json
 from app.models.job_tracker import Application, ApplicationStatus, Company, Contact, Interview
 from app.schemas.job_tracker import (
     ApplicationCreate,
@@ -215,5 +217,15 @@ def delete_contact(contact_id: int, user: CurrentUser, db: DbSession) -> None:
 # Stats
 # --------------------------------------------------------------------------- #
 @router.get("/stats", response_model=JobStats)
-def job_stats(user: CurrentUser, db: DbSession) -> JobStats:
-    return svc.compute_stats(db, user.id)
+def job_stats(
+    user: CurrentUser, db: DbSession, client: RedisDep
+) -> JobStats | dict[str, Any]:
+    version = cache_version(client, "job-tracker", user.id)
+    key = f"cache:job-tracker:{user.id}:v{version}:stats"
+    hit = cached_json(client, key)
+    if hit is not None:
+        return cast("dict[str, Any]", hit)
+
+    result = svc.compute_stats(db, user.id)
+    store_json(client, key, result.model_dump(mode="json"), ttl_seconds=30)
+    return result

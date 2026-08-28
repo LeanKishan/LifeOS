@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import jwt
 from fastapi import FastAPI, Request
@@ -19,9 +22,11 @@ from app.api.routes import (
     projects,
     ws,
 )
+from app.core.cache import bump_cache_version
 from app.core.config import get_settings
+from app.core.redis import get_redis
 from app.core.security import decode_token
-from app.realtime.manager import publish
+from app.realtime.manager import manager, publish
 
 settings = get_settings()
 
@@ -36,11 +41,18 @@ LIVE_CHANNELS = {
 _MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    manager.loop = asyncio.get_running_loop()
+    yield
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="LifeOS API",
         version=__version__,
         description="All-in-one personal management platform.",
+        lifespan=lifespan,
     )
 
     app.add_middleware(
@@ -52,21 +64,22 @@ def create_app() -> FastAPI:
     )
 
     @app.middleware("http")
-    async def emit_live_updates(
+    async def on_mutation(
         request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         response = await call_next(request)
         if request.method not in _MUTATING or response.status_code >= 300:
             return response
         channel = next(
-            (name for prefix, name in LIVE_CHANNELS.items() if request.url.path.startswith(prefix)),
+            (n for p, n in LIVE_CHANNELS.items() if request.url.path.startswith(p)),
             None,
         )
         auth_header = request.headers.get("authorization", "")
         if channel and auth_header.startswith("Bearer "):
             with contextlib.suppress(jwt.PyJWTError, KeyError, ValueError):
-                payload = decode_token(auth_header[7:], "access")
-                publish(int(payload["sub"]), {"type": channel})
+                user_id = int(decode_token(auth_header[7:], "access")["sub"])
+                bump_cache_version(get_redis(), channel, user_id)
+                publish(user_id, {"type": channel})
         return response
 
     app.include_router(health.router, prefix="/api")

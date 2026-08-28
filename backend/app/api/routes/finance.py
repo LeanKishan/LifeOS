@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date
+from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, RedisDep
+from app.core.cache import cache_version, cached_json, store_json
 from app.models.finance import Account, Bill, Budget, Category, Transaction, TransactionKind
 from app.schemas.finance import (
     AccountCreate,
@@ -256,9 +258,21 @@ def delete_bill(bill_id: int, user: CurrentUser, db: DbSession) -> None:
 # --------------------------------------------------------------------------- #
 @router.get("/summary", response_model=FinanceSummary)
 def summary(
-    user: CurrentUser, db: DbSession, month: str = Query(pattern=r"^\d{4}-\d{2}$")
-) -> FinanceSummary:
+    user: CurrentUser,
+    db: DbSession,
+    client: RedisDep,
+    month: str = Query(pattern=r"^\d{4}-\d{2}$"),
+) -> FinanceSummary | dict[str, Any]:
+    version = cache_version(client, "finance", user.id)
+    key = f"cache:finance:{user.id}:v{version}:{month}"
+    hit = cached_json(client, key)
+    if hit is not None:
+        return cast("dict[str, Any]", hit)
+
     try:
-        return svc.summarize(db, user.id, month)
+        result = svc.summarize(db, user.id, month)
     except LookupError as exc:
         raise _422(str(exc)) from exc
+
+    store_json(client, key, result.model_dump(mode="json"), ttl_seconds=30)
+    return result

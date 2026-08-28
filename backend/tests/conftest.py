@@ -9,8 +9,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.db import get_db
+from app.core.redis import get_redis
 from app.main import app
 from app.models import Base
+
+
+@pytest.fixture(autouse=True)
+def _flush_redis() -> Iterator[None]:
+    """Each test starts with an empty Redis (denylist / rate limits / cache)."""
+    get_redis().flushall()
+    yield
+    get_redis().flushall()
 
 
 @pytest.fixture

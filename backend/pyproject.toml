@@ -12,6 +12,8 @@ dependencies = [
     "pydantic-settings>=2.6",
     "email-validator>=2.2",
     "python-dateutil>=2.9",
+    "redis>=5.2",
+    "fakeredis>=2.26",
     "pyjwt>=2.10",
     "pwdlib[argon2]>=0.2.1",
     "python-multipart>=0.0.12",
@@ -58,6 +60,10 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["app/migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["fakeredis.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
