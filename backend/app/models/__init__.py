@@ -21,6 +21,13 @@ from app.models.job_tracker import (
     Contact,
     Interview,
 )
+from app.models.learning import (
+    Course,
+    Flashcard,
+    LearningGoal,
+    Lesson,
+    Note,
+)
 from app.models.projects import (
     BoardColumn,
     Label,
@@ -43,9 +50,14 @@ __all__ = [
     "Category",
     "Company",
     "Contact",
+    "Course",
     "Event",
+    "Flashcard",
     "Interview",
     "Label",
+    "LearningGoal",
+    "Lesson",
+    "Note",
     "Project",
     "Reminder",
     "Subtask",
