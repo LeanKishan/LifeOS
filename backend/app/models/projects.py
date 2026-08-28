@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import Column, ForeignKey, String, Table, Text
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -95,6 +95,8 @@ class Task(TimestampMixin, Base):
     )
     due_on: Mapped[date | None] = mapped_column()
     position: Mapped[int] = mapped_column(default=0)
+    done: Mapped[bool] = mapped_column(default=False, index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     column: Mapped[BoardColumn] = relationship(back_populates="tasks")
     subtasks: Mapped[list[Subtask]] = relationship(

@@ -80,6 +80,7 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     priority: TaskPriority | None = None
     due_on: date | None = None
+    done: bool | None = None
 
 
 class TaskMove(BaseModel):
@@ -94,6 +95,8 @@ class TaskCardRead(_FromORM):
     priority: TaskPriority
     due_on: date | None
     position: int
+    done: bool
+    completed_at: datetime | None
     labels: list[LabelRead] = Field(default_factory=list)
     subtask_total: int
     subtask_done: int

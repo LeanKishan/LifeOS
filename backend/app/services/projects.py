@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
@@ -227,7 +228,11 @@ def create_task(db: Session, user_id: int, column: BoardColumn, data: TaskCreate
 
 
 def update_task(db: Session, user_id: int, task: Task, data: TaskUpdate) -> Task:
-    _apply_changes(task, data.model_dump(exclude_unset=True))
+    changes = data.model_dump(exclude_unset=True)
+    if "done" in changes:
+        task.done = bool(changes.pop("done"))
+        task.completed_at = datetime.now(UTC).replace(tzinfo=None) if task.done else None
+    _apply_changes(task, changes)
     db.commit()
     return _reload_task(db, user_id, task.id)
 
