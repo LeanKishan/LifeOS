@@ -1,7 +1,17 @@
 import { useMemo, useState } from "react";
 
 import { fetchExport } from "@/features/analytics/api";
-import { Bars, ChartCard, DivergingBars } from "@/features/analytics/charts";
+import {
+  Bars,
+  ChartCard,
+  DivergingBars,
+  Donut,
+  Section,
+  SERIES,
+  StackedBar,
+  TrendLine,
+  type Slice,
+} from "@/features/analytics/charts";
 import { useOverview } from "@/features/analytics/queries";
 import { formatCents } from "@/features/finance/money";
 
@@ -9,6 +19,28 @@ const RANGES = [
   { label: "30 days", days: 30 },
   { label: "90 days", days: 90 },
   { label: "1 year", days: 365 },
+];
+
+const PRIORITY_COLOR: Record<string, string> = {
+  urgent: SERIES[4],
+  high: SERIES[2],
+  medium: SERIES[1],
+  low: SERIES[5],
+};
+const MATURITY_COLOR: Record<string, string> = {
+  new: SERIES[5],
+  learning: SERIES[1],
+  young: SERIES[6],
+  mature: SERIES[0],
+};
+const FUNNEL_STAGES = [
+  "wishlist",
+  "applied",
+  "assessment",
+  "interviewing",
+  "offer",
+  "accepted",
+  "rejected",
 ];
 
 function isoDaysAgo(days: number): string {
@@ -52,6 +84,28 @@ export default function AnalyticsPage() {
     { label: "Overdue", value: data ? data.productivity.overdue : "–" },
     { label: "Mature cards", value: data ? data.learning.maturity.mature : "–" },
   ];
+
+  const prioritySlices: Slice[] = data
+    ? ["urgent", "high", "medium", "low"].map((p) => ({
+        label: p,
+        value: data.productivity.by_priority[p] ?? 0,
+        color: PRIORITY_COLOR[p],
+      }))
+    : [];
+  const maturitySlices: Slice[] = data
+    ? ["new", "learning", "young", "mature"].map((k) => ({
+        label: k,
+        value: data.learning.maturity[k] ?? 0,
+        color: MATURITY_COLOR[k],
+      }))
+    : [];
+  const funnelSlices: Slice[] = data
+    ? FUNNEL_STAGES.map((s, i) => ({
+        label: s,
+        value: data.job_search.funnel[s] ?? 0,
+        color: SERIES[i % SERIES.length],
+      }))
+    : [];
 
   return (
     <div>
@@ -104,59 +158,70 @@ export default function AnalyticsPage() {
       {isLoading && <p className="text-sm text-slate-500">Loading…</p>}
 
       {data && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ChartCard title="Tasks completed per week">
-            <Bars
-              data={data.productivity.done_by_week.map((p) => ({
-                label: weekLabel(p.week),
-                value: p.count,
-              }))}
-            />
-          </ChartCard>
+        <>
+          <Section title="Productivity">
+            <ChartCard title="Tasks completed per week">
+              <TrendLine
+                data={data.productivity.done_by_week.map((p) => ({
+                  label: weekLabel(p.week),
+                  value: p.count,
+                }))}
+              />
+            </ChartCard>
+            <ChartCard title="Open tasks by priority">
+              <Donut data={prioritySlices} />
+            </ChartCard>
+          </Section>
 
-          <ChartCard title="Open tasks by priority">
-            <Bars
-              data={["urgent", "high", "medium", "low"].map((p) => ({
-                label: p,
-                value: data.productivity.by_priority[p] ?? 0,
-              }))}
-            />
-          </ChartCard>
+          <Section title="Finance">
+            <ChartCard title="Net by month">
+              <DivergingBars
+                data={data.finance.by_month.map((m) => ({
+                  label: m.month.slice(2),
+                  value: m.net_cents,
+                }))}
+                format={formatCents}
+              />
+            </ChartCard>
+            <ChartCard title="Top spending">
+              <Bars
+                data={data.finance.top_categories.map((c) => ({
+                  label: c.name,
+                  value: c.spent_cents,
+                }))}
+                format={formatCents}
+              />
+            </ChartCard>
+          </Section>
 
-          <ChartCard title="Net by month">
-            <DivergingBars
-              data={data.finance.by_month.map((m) => ({ label: m.month.slice(2), value: m.net_cents }))}
-              format={formatCents}
-            />
-          </ChartCard>
+          <Section title="Learning">
+            <ChartCard title="Lessons completed per week">
+              <TrendLine
+                data={data.learning.lessons_done_by_week.map((p) => ({
+                  label: weekLabel(p.week),
+                  value: p.count,
+                }))}
+              />
+            </ChartCard>
+            <ChartCard title="Flashcard maturity">
+              <StackedBar segments={maturitySlices} />
+            </ChartCard>
+          </Section>
 
-          <ChartCard title="Top spending">
-            <Bars
-              data={data.finance.top_categories.map((c) => ({
-                label: c.name,
-                value: c.spent_cents,
-              }))}
-              format={formatCents}
-            />
-          </ChartCard>
-
-          <ChartCard title="Flashcard maturity">
-            <Bars
-              data={["new", "learning", "young", "mature"].map((k) => ({
-                label: k,
-                value: data.learning.maturity[k] ?? 0,
-              }))}
-            />
-          </ChartCard>
-
-          <ChartCard title="Application funnel">
-            <Bars
-              data={["wishlist", "applied", "assessment", "interviewing", "offer", "accepted", "rejected"].map(
-                (s) => ({ label: s, value: data.job_search.funnel[s] ?? 0 }),
-              )}
-            />
-          </ChartCard>
-        </div>
+          <Section title="Job search">
+            <ChartCard title="Application funnel">
+              <StackedBar segments={funnelSlices} />
+            </ChartCard>
+            <ChartCard title="Applications per week">
+              <TrendLine
+                data={data.job_search.applications_by_week.map((p) => ({
+                  label: weekLabel(p.week),
+                  value: p.count,
+                }))}
+              />
+            </ChartCard>
+          </Section>
+        </>
       )}
     </div>
   );
