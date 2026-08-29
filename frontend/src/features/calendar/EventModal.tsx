@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { Modal } from "@/components/Modal";
-import type { EventInput } from "@/features/calendar/api";
+import type { EventInput, Occurrence } from "@/features/calendar/api";
 import { toDateInput, toLocalInput } from "@/features/calendar/dateUtils";
-import { useCreateEvent, useDeleteEvent, useEvent, useUpdateEvent } from "@/features/calendar/queries";
+import {
+  useCreateEvent,
+  useDeleteEvent,
+  useDeleteOverride,
+  useEvent,
+  useOverrides,
+  useUpdateEvent,
+  useUpsertOverride,
+} from "@/features/calendar/queries";
 
 const FREQS = ["none", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"] as const;
 type Freq = (typeof FREQS)[number];
@@ -39,10 +47,12 @@ function buildRecurrence(freq: Freq, until: string): string | null {
 export function EventModal({
   eventId,
   defaultDate,
+  occurrence,
   onClose,
 }: {
   eventId: number | null;
   defaultDate?: Date;
+  occurrence?: Occurrence;
   onClose: () => void;
 }) {
   const editing = eventId !== null;
@@ -127,7 +137,15 @@ export function EventModal({
       {editing && isLoading ? (
         <p className="text-sm text-slate-500">Loading…</p>
       ) : (
-        <form onSubmit={submit} className="space-y-3">
+        <>
+          {occurrence?.is_recurring && eventId !== null && (
+            <OccurrenceOverridePanel
+              eventId={eventId}
+              occurrence={occurrence}
+              onDone={onClose}
+            />
+          )}
+          <form onSubmit={submit} className="space-y-3">
           {error && (
             <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
               {error}
@@ -223,8 +241,108 @@ export function EventModal({
               </button>
             )}
           </div>
-        </form>
+          </form>
+        </>
       )}
     </Modal>
+  );
+}
+
+function OccurrenceOverridePanel({
+  eventId,
+  occurrence,
+  onDone,
+}: {
+  eventId: number;
+  occurrence: Occurrence;
+  onDone: () => void;
+}) {
+  const [start, setStart] = useState(toLocalInput(new Date(occurrence.start_at)));
+  const [end, setEnd] = useState(toLocalInput(new Date(occurrence.end_at)));
+  const upsert = useUpsertOverride();
+  const removeOverride = useDeleteOverride();
+  const { data: overrides = [] } = useOverrides(occurrence.overridden ? eventId : null);
+  const thisOverride = overrides.find(
+    (o) => o.occurrence_start === occurrence.occurrence_start,
+  );
+
+  const label = new Date(occurrence.occurrence_start).toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/40">
+      <p className="mb-2 font-medium text-amber-900 dark:text-amber-200">
+        This occurrence · {label}
+        {occurrence.overridden && " (changed)"}
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block">
+          <span className="mb-1 block text-xs text-amber-800 dark:text-amber-300">Start</span>
+          <input
+            type="datetime-local"
+            className={inputClass}
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs text-amber-800 dark:text-amber-300">End</span>
+          <input
+            type="datetime-local"
+            className={inputClass}
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={upsert.isPending}
+          onClick={() =>
+            upsert.mutate(
+              {
+                id: eventId,
+                input: {
+                  occurrence_start: occurrence.occurrence_start,
+                  start_at: new Date(start).toISOString(),
+                  end_at: new Date(end).toISOString(),
+                },
+              },
+              { onSuccess: onDone },
+            )
+          }
+          className="rounded bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+        >
+          Reschedule this one
+        </button>
+        <button
+          type="button"
+          disabled={upsert.isPending}
+          onClick={() =>
+            upsert.mutate(
+              { id: eventId, input: { occurrence_start: occurrence.occurrence_start, canceled: true } },
+              { onSuccess: onDone },
+            )
+          }
+          className="text-xs font-medium text-rose-600 hover:underline"
+        >
+          Skip this occurrence
+        </button>
+        {thisOverride && (
+          <button
+            type="button"
+            disabled={removeOverride.isPending}
+            onClick={() => removeOverride.mutate(thisOverride.id, { onSuccess: onDone })}
+            className="text-xs font-medium text-slate-500 hover:underline"
+          >
+            Restore to series
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

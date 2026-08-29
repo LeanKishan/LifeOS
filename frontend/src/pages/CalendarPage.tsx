@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import type { Occurrence } from "@/features/calendar/api";
 import { EventModal } from "@/features/calendar/EventModal";
 import { MonthView } from "@/features/calendar/MonthView";
 import { WeekView } from "@/features/calendar/WeekView";
@@ -14,7 +15,9 @@ import {
 import { useOccurrences } from "@/features/calendar/queries";
 
 type View = "month" | "week";
-type ModalState = { eventId: number | null; defaultDate?: Date } | null;
+type ModalState =
+  | { eventId: number | null; defaultDate?: Date; occurrence?: Occurrence }
+  | null;
 
 export default function CalendarPage() {
   const [view, setView] = useState<View>("month");
@@ -106,14 +109,14 @@ export default function CalendarPage() {
           anchor={anchor}
           occurrences={occurrences}
           onPickDay={(day) => setModal({ eventId: null, defaultDate: day })}
-          onOpenEvent={(eventId) => setModal({ eventId })}
+          onOpenOccurrence={(occ) => setModal({ eventId: occ.event_id, occurrence: occ })}
         />
       ) : (
         <WeekView
           anchor={anchor}
           occurrences={occurrences}
           onPickDay={(day) => setModal({ eventId: null, defaultDate: day })}
-          onOpenEvent={(eventId) => setModal({ eventId })}
+          onOpenOccurrence={(occ) => setModal({ eventId: occ.event_id, occurrence: occ })}
         />
       )}
 
@@ -121,6 +124,7 @@ export default function CalendarPage() {
         <EventModal
           eventId={modal.eventId}
           defaultDate={modal.defaultDate}
+          occurrence={modal.occurrence}
           onClose={() => setModal(null)}
         />
       )}

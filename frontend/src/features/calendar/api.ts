@@ -29,8 +29,32 @@ export interface Occurrence {
   location: string | null;
   all_day: boolean;
   is_recurring: boolean;
+  /** The rule-generated start this instance came from — address overrides by it. */
+  occurrence_start: string;
+  overridden: boolean;
   start_at: string;
   end_at: string;
+}
+
+export interface EventOverride {
+  id: number;
+  event_id: number;
+  occurrence_start: string;
+  canceled: boolean;
+  start_at: string | null;
+  end_at: string | null;
+  title: string | null;
+  description: string | null;
+  location: string | null;
+  created_at: string;
+}
+
+export interface EventOverrideInput {
+  occurrence_start: string;
+  canceled?: boolean;
+  start_at?: string | null;
+  end_at?: string | null;
+  title?: string | null;
 }
 
 export interface EventInput {
@@ -72,4 +96,21 @@ export async function updateEvent(
 
 export async function deleteEvent(eventId: number): Promise<void> {
   await api.delete(`${BASE}/events/${eventId}`);
+}
+
+export async function listOverrides(eventId: number): Promise<EventOverride[]> {
+  const { data } = await api.get<EventOverride[]>(`${BASE}/events/${eventId}/overrides`);
+  return data;
+}
+
+export async function upsertOverride(
+  eventId: number,
+  input: EventOverrideInput,
+): Promise<EventOverride> {
+  const { data } = await api.put<EventOverride>(`${BASE}/events/${eventId}/overrides`, input);
+  return data;
+}
+
+export async function deleteOverride(overrideId: number): Promise<void> {
+  await api.delete(`${BASE}/overrides/${overrideId}`);
 }

@@ -7,12 +7,12 @@ export function MonthView({
   anchor,
   occurrences,
   onPickDay,
-  onOpenEvent,
+  onOpenOccurrence,
 }: {
   anchor: Date;
   occurrences: Occurrence[];
   onPickDay: (day: Date) => void;
-  onOpenEvent: (eventId: number) => void;
+  onOpenOccurrence: (occurrence: Occurrence) => void;
 }) {
   const days = monthMatrix(anchor);
   const today = new Date();
@@ -58,13 +58,16 @@ export function MonthView({
                   <button
                     key={`${occurrence.event_id}-${index}`}
                     type="button"
-                    onClick={() => onOpenEvent(occurrence.event_id)}
+                    onClick={() => onOpenOccurrence(occurrence)}
                     className="block w-full truncate rounded bg-emerald-100 px-1 py-0.5 text-left text-[11px] text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
                   >
                     {!occurrence.all_day && (
                       <span className="tabular-nums">{fmtTime(new Date(occurrence.start_at))} </span>
                     )}
                     {occurrence.title}
+                    {occurrence.overridden && (
+                      <span title="This occurrence was changed"> ✎</span>
+                    )}
                   </button>
                 ))}
                 {dayOccurrences.length > 3 && (

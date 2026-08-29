@@ -5,12 +5,12 @@ export function WeekView({
   anchor,
   occurrences,
   onPickDay,
-  onOpenEvent,
+  onOpenOccurrence,
 }: {
   anchor: Date;
   occurrences: Occurrence[];
   onPickDay: (day: Date) => void;
-  onOpenEvent: (eventId: number) => void;
+  onOpenOccurrence: (occurrence: Occurrence) => void;
 }) {
   const days = weekDays(anchor);
   const today = new Date();
@@ -48,10 +48,15 @@ export function WeekView({
                 <button
                   key={`${occurrence.event_id}-${index}`}
                   type="button"
-                  onClick={() => onOpenEvent(occurrence.event_id)}
+                  onClick={() => onOpenOccurrence(occurrence)}
                   className="block w-full rounded bg-emerald-100 px-1.5 py-1 text-left text-[11px] text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
                 >
-                  <div className="font-medium">{occurrence.title}</div>
+                  <div className="font-medium">
+                    {occurrence.title}
+                    {occurrence.overridden && (
+                      <span title="This occurrence was changed"> ✎</span>
+                    )}
+                  </div>
                   {!occurrence.all_day && (
                     <div className="tabular-nums text-emerald-600 dark:text-emerald-500">
                       {fmtTime(new Date(occurrence.start_at))}
