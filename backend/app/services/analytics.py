@@ -4,7 +4,7 @@ import csv
 import io
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
@@ -32,8 +32,14 @@ MAX_RANGE_DAYS = 366
 DEFAULT_RANGE_DAYS = 90
 
 
+def _utc_today() -> date:
+    """Timestamps are stored as naive UTC, so "today" must be UTC too — a
+    local `date.today()` drops or double-counts a day near the UTC boundary."""
+    return datetime.now(UTC).date()
+
+
 def resolve_range(date_from: date | None, date_to: date | None) -> tuple[date, date]:
-    end = date_to or date.today()
+    end = date_to or _utc_today()
     start = date_from or (end - timedelta(days=DEFAULT_RANGE_DAYS))
     if end < start:
         raise LookupError("`to` must not be before `from`")
@@ -66,7 +72,7 @@ def _productivity(db: Session, user_id: int, start: date, end: date) -> Producti
         if not task.done:
             by_priority[task.priority.value] += 1
 
-    today = date.today()
+    today = _utc_today()
     overdue = sum(
         1 for t in tasks if not t.done and t.due_on is not None and t.due_on < today
     )
@@ -154,7 +160,7 @@ def _learning(db: Session, user_id: int, start: date, end: date) -> LearningStat
         else:
             maturity["mature"] += 1
 
-    week_ago = date.today() - timedelta(days=7)
+    week_ago = _utc_today() - timedelta(days=7)
     reviews_last_7d = len(
         list(
             db.scalars(

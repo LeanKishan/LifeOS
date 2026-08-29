@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -75,7 +76,9 @@ def test_logout_all_invalidates_every_existing_token(client: TestClient) -> None
 # --------------------------------------------------------------------------- #
 # Rate limiting
 # --------------------------------------------------------------------------- #
-def test_login_is_rate_limited(client: TestClient) -> None:
+def test_login_is_rate_limited(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Pin the fixed-window clock so the test can't straddle a minute boundary.
+    monkeypatch.setattr("app.core.ratelimit.time.time", lambda: 1_800_000_000.0)
     client.post("/api/auth/register", json={"email": "rl@example.com", "password": "password123"})
 
     statuses = [
@@ -87,10 +90,13 @@ def test_login_is_rate_limited(client: TestClient) -> None:
     ]
 
     assert statuses[:10] == [401] * 10  # first ten attempts hit the endpoint
-    assert 429 in statuses[10:]
+    assert statuses[10:] == [429, 429]
 
 
-def test_register_is_rate_limited(client: TestClient) -> None:
+def test_register_is_rate_limited(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("app.core.ratelimit.time.time", lambda: 1_800_000_000.0)
     statuses = [
         client.post(
             "/api/auth/register",
@@ -98,7 +104,8 @@ def test_register_is_rate_limited(client: TestClient) -> None:
         ).status_code
         for i in range(7)
     ]
-    assert statuses.count(429) >= 1
+    assert statuses[:5] == [201] * 5
+    assert statuses[5:] == [429, 429]
 
 
 # --------------------------------------------------------------------------- #
