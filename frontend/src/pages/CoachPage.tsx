@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
-import { sendChat, type ChatTurn } from "@/features/coach/api";
+import { sendChatStream, type ChatTurn } from "@/features/coach/api";
 
-type Bubble = ChatTurn & { tools?: string[] };
+type Bubble = ChatTurn & { tools?: string[]; streaming?: boolean };
 
 const SUGGESTIONS = [
   "What's on my agenda this week?",
@@ -26,28 +26,41 @@ export default function CoachPage() {
     const text = input.trim();
     if (!text || busy) return;
 
-    const withUser: Bubble[] = [...bubbles, { role: "user", content: text }];
-    setBubbles(withUser);
+    const userTurn: ChatTurn = { role: "user", content: text };
+    const history: ChatTurn[] = [
+      ...bubbles.map(({ role, content }) => ({ role, content })),
+      userTurn,
+    ];
+    setBubbles((prev) => [
+      ...prev,
+      userTurn,
+      { role: "assistant", content: "", tools: [], streaming: true },
+    ]);
     setInput("");
     setBusy(true);
 
+    // Mutate only the trailing (streaming) assistant bubble.
+    const patchLast = (fn: (b: Bubble) => Bubble) =>
+      setBubbles((prev) => prev.map((b, i) => (i === prev.length - 1 ? fn(b) : b)));
+
     try {
-      const history: ChatTurn[] = withUser.map(({ role, content }) => ({ role, content }));
-      const reply = await sendChat(history);
-      setBubbles([
-        ...withUser,
-        { role: "assistant", content: reply.reply, tools: reply.tool_calls },
-      ]);
-    } catch (err) {
-      const status = (err as { response?: { status?: number } }).response?.status;
-      if (status === 503) {
-        setUnavailable(true);
-      } else {
-        setBubbles([
-          ...withUser,
-          { role: "assistant", content: "Something went wrong — try again.", tools: [] },
-        ]);
-      }
+      await sendChatStream(history, {
+        onDelta: (chunk) =>
+          patchLast((b) => ({ ...b, content: b.content + chunk })),
+        onTool: (name) =>
+          patchLast((b) => ({ ...b, tools: [...(b.tools ?? []), name] })),
+        onDone: () => patchLast((b) => ({ ...b, streaming: false })),
+        onError: () =>
+          patchLast((b) => ({
+            ...b,
+            streaming: false,
+            content: b.content || "Something went wrong — try again.",
+          })),
+        onUnavailable: () => {
+          setUnavailable(true);
+          setBubbles((prev) => prev.slice(0, -1)); // drop the empty assistant bubble
+        },
+      });
     } finally {
       setBusy(false);
     }
@@ -97,7 +110,12 @@ export default function CoachPage() {
                   : "bg-slate-100 dark:bg-slate-800"
               }`}
             >
-              <p className="whitespace-pre-wrap">{bubble.content}</p>
+              <p className="whitespace-pre-wrap">
+                {bubble.content}
+                {bubble.streaming && (
+                  <span className="ml-0.5 inline-block animate-pulse">▋</span>
+                )}
+              </p>
               {bubble.tools && bubble.tools.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {bubble.tools.map((tool, toolIndex) => (
@@ -114,7 +132,6 @@ export default function CoachPage() {
           </div>
         ))}
 
-        {busy && <p className="text-sm text-slate-400">thinking…</p>}
       </div>
 
       <form onSubmit={submit} className="flex gap-2">

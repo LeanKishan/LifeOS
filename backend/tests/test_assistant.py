@@ -27,15 +27,43 @@ def tool_call(name: str, tool_input: dict[str, Any], call_id: str = "t1") -> Sim
     )
 
 
+class FakeStream:
+    """Adapts a scripted message into the SDK's streaming context manager."""
+
+    def __init__(self, message: SimpleNamespace) -> None:
+        self._message = message
+
+    def __enter__(self) -> FakeStream:
+        return self
+
+    def __exit__(self, *_exc: object) -> bool:
+        return False
+
+    @property
+    def text_stream(self) -> Any:
+        for block in self._message.content:
+            if getattr(block, "type", None) == "text":
+                for word in block.text.split(" "):
+                    yield word + " "
+
+    def get_final_message(self) -> SimpleNamespace:
+        return self._message
+
+
 @pytest.fixture
 def fake_llm(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     state: dict[str, Any] = {"script": [], "calls": []}
 
     class FakeMessages:
-        def create(self, **kwargs: Any) -> SimpleNamespace:
-            snapshot = {**kwargs, "messages": list(kwargs.get("messages", []))}
-            state["calls"].append(snapshot)
+        def _next(self, kwargs: dict[str, Any]) -> SimpleNamespace:
+            state["calls"].append({**kwargs, "messages": list(kwargs.get("messages", []))})
             return state["script"].pop(0)  # type: ignore[no-any-return]
+
+        def create(self, **kwargs: Any) -> SimpleNamespace:
+            return self._next(kwargs)
+
+        def stream(self, **kwargs: Any) -> FakeStream:
+            return FakeStream(self._next(kwargs))
 
     class FakeClient:
         def __init__(self, api_key: str | None = None) -> None:
@@ -165,6 +193,67 @@ def test_chat_endpoint_503_when_unconfigured(
     resp = client.post(
         "/api/coach/chat",
         json={"messages": [{"role": "user", "content": "hello"}]},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 503
+
+
+# --------------------------------------------------------------------------- #
+# Streaming endpoint
+# --------------------------------------------------------------------------- #
+def _sse_events(body: str) -> list[dict[str, Any]]:
+    return [
+        json.loads(line[len("data: ") :])
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+
+
+def test_stream_endpoint_emits_deltas_then_done(
+    client: TestClient, auth_headers: dict[str, str], fake_llm: dict[str, Any]
+) -> None:
+    fake_llm["script"] = [text_reply("Here is your answer.")]
+    resp = client.post(
+        "/api/coach/chat/stream",
+        json={"messages": [{"role": "user", "content": "hi"}]},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+
+    events = _sse_events(resp.text)
+    text = "".join(e["text"] for e in events if e["type"] == "delta")
+    assert text.strip() == "Here is your answer."
+    assert events[-1] == {"type": "done", "tool_calls": []}
+
+
+def test_stream_endpoint_reports_tool_calls(
+    client: TestClient,
+    db_session: Session,
+    auth_headers: dict[str, str],
+    fake_llm: dict[str, Any],
+) -> None:
+    client.post("/api/projects", json={"name": "Demo"}, headers=auth_headers)
+    fake_llm["script"] = [
+        tool_call("list_projects", {}),
+        text_reply("You have one project."),
+    ]
+    resp = client.post(
+        "/api/coach/chat/stream",
+        json={"messages": [{"role": "user", "content": "projects?"}]},
+        headers=auth_headers,
+    )
+    events = _sse_events(resp.text)
+    assert {"type": "tool", "name": "list_projects"} in events
+    assert events[-1] == {"type": "done", "tool_calls": ["list_projects"]}
+
+
+def test_stream_endpoint_503_when_unconfigured(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    resp = client.post(
+        "/api/coach/chat/stream",
+        json={"messages": [{"role": "user", "content": "hi"}]},
         headers=auth_headers,
     )
     assert resp.status_code == 503

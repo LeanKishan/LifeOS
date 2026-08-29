@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
@@ -19,6 +20,7 @@ from app.services import learning as learning_svc
 from app.services import projects as projects_svc
 
 MAX_TOOL_ITERATIONS = 6
+GAVE_UP = "I made several tool calls but couldn't wrap up — try asking something narrower."
 
 SYSTEM_PROMPT = (
     "You are the assistant inside LifeOS, a personal management app. The user's "
@@ -118,6 +120,23 @@ def _client() -> Anthropic:
     if not key:
         raise AssistantNotConfigured
     return Anthropic(api_key=key)
+
+
+def ensure_configured() -> None:
+    """Raise ``AssistantNotConfigured`` now, before a stream response has started."""
+    _client()
+
+
+def _base_params() -> dict[str, Any]:
+    settings = get_settings()
+    return {
+        "model": settings.assistant_model,
+        "max_tokens": 8192,
+        "thinking": {"type": "adaptive"},
+        "output_config": {"effort": "medium"},
+        "system": SYSTEM_PROMPT.format(today=date.today().isoformat()),
+        "tools": TOOLS,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -244,19 +263,9 @@ def execute_tool(db: Session, user_id: int, name: str, args: dict[str, Any]) -> 
 # --------------------------------------------------------------------------- #
 def run_chat(db: Session, user_id: int, messages: list[dict[str, Any]]) -> ChatResult:
     client = _client()
-    settings = get_settings()
-    system = SYSTEM_PROMPT.format(today=date.today().isoformat())
     conversation: list[dict[str, Any]] = list(messages)
     tool_calls: list[str] = []
-
-    params: dict[str, Any] = {
-        "model": settings.assistant_model,
-        "max_tokens": 8192,
-        "thinking": {"type": "adaptive"},
-        "output_config": {"effort": "medium"},
-        "system": system,
-        "tools": TOOLS,
-    }
+    params = _base_params()
 
     for _ in range(MAX_TOOL_ITERATIONS):
         response = client.messages.create(**{**params, "messages": conversation})
@@ -286,7 +295,54 @@ def run_chat(db: Session, user_id: int, messages: list[dict[str, Any]]) -> ChatR
             )
         conversation.append({"role": "user", "content": results})
 
-    return ChatResult(
-        reply="I made several tool calls but couldn't wrap up — try asking something narrower.",
-        tool_calls=tool_calls,
-    )
+    return ChatResult(reply=GAVE_UP, tool_calls=tool_calls)
+
+
+def run_chat_stream(
+    db: Session, user_id: int, messages: list[dict[str, Any]]
+) -> Iterator[dict[str, Any]]:
+    """Same agentic loop as ``run_chat``, but yields events as they happen:
+
+    ``{"type": "delta", "text": ...}``   assistant text, token by token
+    ``{"type": "tool", "name": ...}``    a tool is about to run
+    ``{"type": "done", "tool_calls": [...]}``
+    """
+    client = _client()
+    conversation: list[dict[str, Any]] = list(messages)
+    tool_calls: list[str] = []
+    params = _base_params()
+
+    for _ in range(MAX_TOOL_ITERATIONS):
+        with client.messages.stream(**{**params, "messages": conversation}) as stream:
+            for text in stream.text_stream:
+                yield {"type": "delta", "text": text}
+            final = stream.get_final_message()
+
+        conversation.append({"role": "assistant", "content": final.content})
+
+        if final.stop_reason != "tool_use":
+            yield {"type": "done", "tool_calls": tool_calls}
+            return
+
+        results: list[dict[str, Any]] = []
+        for block in final.content:
+            if block.type != "tool_use":
+                continue
+            tool_calls.append(block.name)
+            yield {"type": "tool", "name": block.name}
+            output = execute_tool(
+                db, user_id, block.name, cast("dict[str, Any]", block.input)
+            )
+            results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": output,
+                    "is_error": output.startswith("error:"),
+                }
+            )
+        conversation.append({"role": "user", "content": results})
+
+    yield {"type": "delta", "text": GAVE_UP}
+    yield {"type": "done", "tool_calls": tool_calls}
+
