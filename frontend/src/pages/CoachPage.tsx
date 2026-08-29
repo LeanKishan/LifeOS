@@ -79,7 +79,7 @@ export default function CoachPage() {
 
       <div
         ref={scrollRef}
-        className="surface-card mb-3 h-[28rem] space-y-4 overflow-y-auto p-5"
+        className="surface-card mb-3 h-[62dvh] min-h-[24rem] space-y-4 overflow-y-auto p-5"
       >
         {bubbles.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">

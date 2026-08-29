@@ -185,8 +185,46 @@ export default function FinancePage() {
             <option value="income">Income</option>
           </Select>
         </div>
-        <div className="surface-card overflow-x-auto p-0">
-          <table className="w-full text-left text-sm">
+        <div className="surface-card overflow-hidden p-0">
+          {/* mobile: stacked rows */}
+          <ul className="divide-y divide-line/[0.05] sm:hidden">
+            {transactions.map((txn) => (
+              <li key={txn.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm text-content">{txn.description ?? "—"}</div>
+                  <div className="text-xs text-faint">
+                    {txn.occurred_on} · {categoryName(txn.category_id)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-semibold tabular-nums ${
+                      txn.kind === "income" ? "text-brand-hi" : "text-content"
+                    }`}
+                  >
+                    {txn.kind === "income" ? "+" : "−"}
+                    {formatCents(txn.amount_cents)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeTxn.mutate(txn.id)}
+                    className="text-faint hover:text-rose-400"
+                    aria-label="Delete transaction"
+                  >
+                    <Icon name="trash" size={15} />
+                  </button>
+                </div>
+              </li>
+            ))}
+            {transactions.length === 0 && (
+              <li className="px-4 py-10 text-center text-sm text-faint">
+                No transactions this month.
+              </li>
+            )}
+          </ul>
+
+          {/* desktop: table */}
+          <table className="hidden w-full text-left text-sm sm:table">
             <thead>
               <tr className="border-b border-line/[0.08] text-xs uppercase tracking-wide text-faint">
                 <th className="px-4 py-3 font-semibold">Date</th>

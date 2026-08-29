@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ============================================================
-   Design tokens  (channels only, so /alpha works everywhere)
+   Design tokens  (RGB channels only, so /alpha works everywhere)
    ============================================================ */
 :root {
   --ink: 247 249 252;
@@ -22,14 +22,14 @@
 }
 
 :root.dark {
-  --ink: 9 12 18;
-  --elev: 17 22 31;
+  --ink: 8 11 16;
+  --elev: 16 21 30;
   --surface: 20 26 37;
-  --surface-2: 26 33 47;
+  --surface-2: 27 34 48;
   --line: 255 255 255;
-  --content: 231 236 243;
-  --muted: 147 161 179;
-  --faint: 100 112 130;
+  --content: 233 238 245;
+  --muted: 150 164 182;
+  --faint: 103 115 133;
   --brand: 16 185 129;
   --brand-hi: 52 211 153;
   --brand-lo: 5 150 105;
@@ -37,11 +37,11 @@
   color-scheme: dark;
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: rgb(var(--ink));
   color: rgb(var(--content));
   font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -56,42 +56,50 @@ h1, h2, h3, h4 {
 }
 
 /* Scrollbar */
-* { scrollbar-width: thin; scrollbar-color: rgb(var(--brand) / 0.25) transparent; }
-*::-webkit-scrollbar { width: 10px; height: 10px; }
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--brand) / 0.22) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: rgb(var(--brand) / 0.22);
+  background: rgb(var(--brand) / 0.2);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-*::-webkit-scrollbar-thumb:hover { background: rgb(var(--brand) / 0.4); background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: rgb(var(--brand) / 0.38); background-clip: padding-box; }
 
 ::selection { background: rgb(var(--brand) / 0.28); color: rgb(var(--content)); }
-
 :focus-visible { outline: 2px solid rgb(var(--brand) / 0.6); outline-offset: 2px; }
 
 @keyframes lifeos-spin { to { transform: rotate(360deg); } }
+@keyframes lifeos-sheet-up { from { transform: translateY(12%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* ============================================================
-   Semantic component classes reused across pages
+   Semantic component classes
    ============================================================ */
 @layer components {
   .surface-card {
-    @apply rounded-2xl border border-line/[0.08] bg-surface shadow-card;
+    @apply relative rounded-2xl border border-line/[0.08] bg-surface shadow-card;
+  }
+  /* faint top highlight for depth */
+  .surface-card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-white/[0.06] to-transparent;
   }
   .surface-glass {
-    @apply rounded-2xl border border-line/[0.08] bg-surface/70 shadow-card backdrop-blur-xl;
+    @apply surface-card bg-surface/70 backdrop-blur-xl;
   }
 
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl
-           text-sm font-semibold transition duration-150 active:scale-[0.97]
+           text-sm font-semibold leading-none transition duration-150 active:scale-[0.97]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50
+           focus-visible:ring-offset-2 focus-visible:ring-offset-ink
            disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
     @apply btn bg-gradient-to-b from-brand-hi to-brand text-[#04140d] shadow-glow-sm
-           hover:from-brand hover:to-brand-lo hover:shadow-glow;
+           shadow-[inset_0_1px_0_rgb(255_255_255/0.3)] hover:from-brand hover:to-brand-lo
+           hover:shadow-glow;
   }
   .btn-secondary {
     @apply btn border border-line/[0.14] bg-surface-2 text-content
@@ -106,7 +114,7 @@ h1, h2, h3, h4 {
   .btn-lg { @apply h-11 px-5 text-[15px]; }
 
   .field-input {
-    @apply w-full rounded-xl border border-line/[0.14] bg-ink/50 px-3.5 py-2.5 text-sm text-content
+    @apply block w-full rounded-xl border border-line/[0.14] bg-ink/50 px-3.5 py-2.5 text-sm text-content
            placeholder:text-faint outline-none transition
            focus:border-brand/60 focus:ring-4 focus:ring-brand/15;
   }
@@ -117,6 +125,11 @@ h1, h2, h3, h4 {
 
   .label-eyebrow {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-faint;
+  }
+
+  .icon-btn {
+    @apply grid place-items-center rounded-xl border border-line/[0.1] bg-surface-2 text-muted
+           transition hover:border-brand/40 hover:text-content active:scale-95;
   }
 }
 
@@ -135,6 +148,9 @@ h1, h2, h3, h4 {
     @apply bg-gradient-to-r from-brand-hi via-brand to-violetish bg-clip-text text-transparent;
   }
   .spin { animation: lifeos-spin 0.7s linear infinite; }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .animate-sheet-up { animation: lifeos-sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

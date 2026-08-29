@@ -18,7 +18,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-xl border border-line/[0.1] bg-surface-2 p-1",
+        "inline-flex shrink-0 items-center gap-1 rounded-xl border border-line/[0.1] bg-surface-2 p-1",
         className,
       )}
     >
@@ -30,14 +30,13 @@ export function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium capitalize transition",
-              active
-                ? "bg-brand/15 text-brand-hi shadow-glow-sm"
-                : "text-faint hover:text-content",
+              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium capitalize transition sm:px-3",
+              active ? "bg-brand/15 text-brand-hi shadow-glow-sm" : "text-faint hover:text-content",
             )}
           >
             {opt.icon && <Icon name={opt.icon} size={14} />}
-            {opt.label}
+            <span className="hidden sm:inline">{opt.label}</span>
+            <span className="sm:hidden">{opt.icon ? "" : opt.label}</span>
           </button>
         );
       })}
@@ -60,15 +59,17 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "mb-6 flex flex-col gap-3 animate-fade-in-up sm:flex-row sm:items-center sm:justify-between",
+        "mb-6 flex flex-col gap-4 animate-fade-in-up md:flex-row md:items-start md:justify-between",
         className,
       )}
     >
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-content">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold tracking-tight text-content sm:text-[28px]">{title}</h1>
+        {subtitle && <div className="mt-1 text-sm text-muted">{subtitle}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">{actions}</div>
+      )}
     </div>
   );
 }
@@ -90,7 +91,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "surface-card flex flex-col items-center gap-3 px-6 py-14 text-center",
+        "surface-card flex flex-col items-center gap-3 px-6 py-12 text-center sm:py-16",
         className,
       )}
     >
@@ -99,7 +100,7 @@ export function EmptyState({
       </div>
       <div>
         <p className="font-semibold text-content">{title}</p>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+        {description && <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>}
       </div>
       {action}
     </div>
@@ -112,14 +113,12 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return (
-    <div className={cn("animate-pulse rounded-xl bg-line/[0.06]", className)} />
-  );
+  return <div className={cn("animate-pulse rounded-xl bg-line/[0.06]", className)} />;
 }
 
 export function LoadingRow({ label = "Loading…" }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 py-6 text-sm text-faint">
+    <div className="flex items-center gap-2 py-8 text-sm text-faint">
       <Spinner />
       {label}
     </div>
@@ -148,9 +147,15 @@ export function StatTile({
     amber: "text-amber-300 bg-amber-500/10",
     rose: "text-rose-300 bg-rose-500/10",
   }[tone];
+  const bar = {
+    brand: "from-brand-hi/60",
+    violet: "from-violet-400/60",
+    amber: "from-amber-400/60",
+    rose: "from-rose-400/60",
+  }[tone];
   return (
-    <div className={cn("surface-card card-hover p-4", className)}>
-      <div className="flex items-start justify-between gap-2">
+    <div className={cn("surface-card card-hover overflow-hidden p-4", className)}>
+      <div className="flex items-center justify-between gap-2">
         <span className="label-eyebrow">{label}</span>
         {icon && (
           <span className={cn("grid h-7 w-7 place-items-center rounded-lg", toneCls)}>
@@ -158,8 +163,14 @@ export function StatTile({
           </span>
         )}
       </div>
-      <div className="mt-2 text-2xl font-bold tabular-nums text-content">{value}</div>
-      {hint && <div className="mt-0.5 text-xs text-faint">{hint}</div>}
+      <div className="mt-2.5 truncate text-2xl font-bold leading-none tabular-nums text-content sm:text-[26px]">
+        {value}
+      </div>
+      {hint ? (
+        <div className="mt-1.5 text-xs text-faint">{hint}</div>
+      ) : (
+        <div className={cn("mt-3 h-0.5 w-8 rounded-full bg-gradient-to-r to-transparent", bar)} />
+      )}
     </div>
   );
 }

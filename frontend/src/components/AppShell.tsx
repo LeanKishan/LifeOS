@@ -20,20 +20,34 @@ export const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/settings", label: "Settings", icon: "settings" },
 ];
 
-function Brand() {
+function titleFor(pathname: string): string {
+  if (pathname.startsWith("/projects/")) return "Board";
+  if (pathname.startsWith("/learning/")) return "Course";
+  return NAV.find((n) => n.to === pathname)?.label ?? "LifeOS";
+}
+
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <Link to="/" className="group flex items-center gap-2.5">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-hi to-brand-lo text-[#04140d] shadow-glow-sm transition group-hover:shadow-glow">
+    <Link to="/" className="group flex items-center gap-2.5" aria-label="LifeOS home">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-hi to-brand-lo text-[#04140d] shadow-glow-sm transition group-hover:shadow-glow">
         <Icon name="layers" size={18} strokeWidth={2.2} />
       </span>
-      <span className="font-display text-lg font-extrabold tracking-tight">
-        Life<span className="text-brand-hi">OS</span>
-      </span>
+      {!compact && (
+        <span className="font-display text-lg font-extrabold tracking-tight">
+          Life<span className="text-brand-hi">OS</span>
+        </span>
+      )}
     </Link>
   );
 }
 
-function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+function NavItems({
+  compact = false,
+  onNavigate,
+}: {
+  compact?: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <nav className="flex flex-col gap-1">
       {NAV.map((item) => (
@@ -42,9 +56,11 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           to={item.to}
           end={item.to === "/"}
           onClick={onNavigate}
+          title={compact ? item.label : undefined}
           className={({ isActive }) =>
             cn(
-              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+              "group/nav relative flex items-center rounded-xl text-sm font-medium transition",
+              compact ? "h-11 w-11 justify-center" : "gap-3 px-3 py-2.5",
               isActive
                 ? "bg-brand/10 text-brand-hi"
                 : "text-muted hover:bg-line/[0.05] hover:text-content",
@@ -54,10 +70,20 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           {({ isActive }) => (
             <>
               {isActive && (
-                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-hi" />
+                <span
+                  className={cn(
+                    "absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-hi shadow-glow-sm",
+                    compact && "left-0",
+                  )}
+                />
               )}
               <Icon name={item.icon} size={18} />
-              {item.label}
+              {!compact && item.label}
+              {compact && (
+                <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-lg border border-line/[0.1] bg-elev px-2.5 py-1.5 text-xs text-content shadow-pop group-hover/nav:block">
+                  {item.label}
+                </span>
+              )}
             </>
           )}
         </NavLink>
@@ -77,7 +103,7 @@ function HealthDot() {
     <span
       title={ok ? "API + database healthy" : "API degraded"}
       className={cn(
-        "hidden items-center gap-1.5 rounded-full border border-line/[0.1] bg-surface-2 px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
+        "hidden items-center gap-1.5 rounded-full border border-line/[0.1] bg-surface-2 px-2.5 py-1 text-[11px] font-medium md:inline-flex",
         ok ? "text-brand-hi" : "text-amber-300",
       )}
     >
@@ -102,13 +128,13 @@ function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-xl border border-line/[0.1] bg-surface-2 py-1 pl-1 pr-2.5 text-sm transition hover:border-brand/40"
+        className="flex items-center gap-2 rounded-xl border border-line/[0.1] bg-surface-2 py-1 pl-1 pr-1.5 text-sm transition hover:border-brand/40 sm:pr-2.5"
       >
         <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand-hi to-brand-lo text-[11px] font-bold text-[#04140d]">
           {(user?.email ?? "?").slice(0, 2).toUpperCase()}
         </span>
         <span className="hidden max-w-[10rem] truncate text-muted sm:inline">{user?.email}</span>
-        <Icon name="chevronDown" size={14} className="text-faint" />
+        <Icon name="chevronDown" size={14} className="hidden text-faint sm:block" />
       </button>
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right animate-scale-in rounded-xl border border-line/[0.1] bg-elev p-1.5 shadow-pop">
@@ -149,22 +175,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => setDrawer(false), [pathname]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       {/* ambient background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-[32rem] w-[32rem] animate-aurora rounded-full bg-brand/12 blur-[120px]" />
-        <div className="absolute -right-40 top-1/3 h-[28rem] w-[28rem] animate-aurora rounded-full bg-violet-500/10 blur-[120px] [animation-delay:-8s]" />
+        <div className="absolute -left-40 -top-40 h-[32rem] w-[32rem] animate-aurora rounded-full bg-brand/[0.1] blur-[130px]" />
+        <div className="absolute -right-40 top-1/3 h-[28rem] w-[28rem] animate-aurora rounded-full bg-violet-500/[0.09] blur-[130px] [animation-delay:-8s]" />
       </div>
 
-      {/* desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line/[0.08] bg-elev/60 px-4 py-5 backdrop-blur-xl lg:flex">
-        <div className="px-2">
-          <Brand />
+      {/* icon-rail (md) → full sidebar (xl) */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line/[0.08] bg-elev/60 backdrop-blur-xl md:flex md:w-16 md:items-center md:px-2 md:py-4 xl:w-60 xl:items-stretch xl:px-4 xl:py-5">
+        <div className="xl:px-2">
+          <span className="hidden xl:block">
+            <Brand />
+          </span>
+          <span className="xl:hidden">
+            <Brand compact />
+          </span>
         </div>
-        <div className="mt-8 flex-1 overflow-y-auto">
-          <NavItems />
+        <div className="mt-8 flex-1 overflow-y-auto no-scrollbar">
+          <span className="hidden xl:block">
+            <NavItems />
+          </span>
+          <span className="xl:hidden">
+            <NavItems compact />
+          </span>
         </div>
-        <div className="mt-4 border-t border-line/[0.08] pt-3">
+        <div className="mt-4 hidden w-full border-t border-line/[0.08] pt-3 xl:block">
           <span
             className={cn(
               "flex items-center gap-2 px-3 text-[11px] font-medium",
@@ -175,14 +211,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             {connected ? "Live updates on" : "Reconnecting…"}
           </span>
         </div>
+        <div className="mt-3 xl:hidden">
+          <Icon
+            name="live"
+            size={14}
+            className={connected ? "text-brand-hi" : "text-faint opacity-40"}
+          />
+        </div>
       </aside>
 
       {/* mobile drawer */}
       {drawer && (
-        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setDrawer(false)}>
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setDrawer(false)}>
           <div className="absolute inset-0 bg-ink/70 backdrop-blur-sm" />
           <div
-            className="absolute inset-y-0 left-0 w-72 animate-slide-in-right border-r border-line/[0.1] bg-elev px-4 py-5"
+            className="absolute inset-y-0 left-0 flex w-72 max-w-[82vw] flex-col animate-slide-in-right border-r border-line/[0.1] bg-elev px-4 py-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-2">
@@ -191,38 +234,41 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Icon name="x" size={18} />
               </button>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 flex-1 overflow-y-auto">
               <NavItems onNavigate={() => setDrawer(false)} />
             </div>
           </div>
         </div>
       )}
 
-      <div className="lg:pl-64">
+      <div className="md:pl-16 xl:pl-60">
         {/* topbar */}
         <header className="sticky top-0 z-20 border-b border-line/[0.08] bg-ink/70 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
-            <div className="flex items-center gap-2">
+          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setDrawer(true)}
-                className="btn-ghost btn-sm lg:hidden"
+                className="btn-ghost btn-sm md:hidden"
                 aria-label="Menu"
               >
                 <Icon name="menu" size={20} />
               </button>
-              <span className="lg:hidden">
-                <Brand />
+              <span className="md:hidden">
+                <Brand compact />
+              </span>
+              <span className="truncate font-display text-sm font-bold text-muted xl:hidden">
+                {titleFor(pathname)}
               </span>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               <HealthDot />
               <UserMenu />
             </div>
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <div key={pathname} className="animate-fade-in-up">
             {children}
           </div>

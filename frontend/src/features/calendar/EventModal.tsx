@@ -164,7 +164,7 @@ export function EventModal({
             All day
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {allDay ? (
               <>
                 <label className="block">
@@ -190,7 +190,7 @@ export function EventModal({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-xs text-muted">Repeat</span>
               <select className={inputClass} value={freq} onChange={(e) => setFreq(e.target.value as Freq)}>

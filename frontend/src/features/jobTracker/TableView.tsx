@@ -1,3 +1,4 @@
+import { Icon } from "@/components/icons";
 import type { Application } from "@/features/jobTracker/api";
 import { STATUS_META, formatSalary } from "@/features/jobTracker/statusMeta";
 
@@ -13,37 +14,63 @@ export function TableView({
   }
 
   return (
-    <div className="overflow-x-auto surface-card p-0">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-surface-2 text-xs uppercase text-muted ">
-          <tr>
-            <th className="px-4 py-2">Company</th>
-            <th className="px-4 py-2">Role</th>
-            <th className="px-4 py-2">Status</th>
-            <th className="px-4 py-2">Source</th>
-            <th className="px-4 py-2">Salary</th>
-            <th className="px-4 py-2">Applied</th>
+    <div className="surface-card overflow-hidden p-0">
+      {/* mobile: cards */}
+      <ul className="divide-y divide-line/[0.05] md:hidden">
+        {applications.map((a) => (
+          <li key={a.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(a)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-line/[0.03]"
+            >
+              <div className="min-w-0">
+                <div className="truncate font-medium text-content">{a.role}</div>
+                <div className="truncate text-xs text-faint">
+                  {a.company.name}
+                  {formatSalary(a) ? ` · ${formatSalary(a)}` : ""}
+                </div>
+              </div>
+              <span className={`${STATUS_META[a.status].badge} shrink-0`}>
+                {STATUS_META[a.status].label}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* desktop: table */}
+      <table className="hidden w-full text-left text-sm md:table">
+        <thead>
+          <tr className="border-b border-line/[0.08] text-xs uppercase tracking-wide text-faint">
+            <th className="px-4 py-3 font-semibold">Company</th>
+            <th className="px-4 py-3 font-semibold">Role</th>
+            <th className="px-4 py-3 font-semibold">Status</th>
+            <th className="px-4 py-3 font-semibold">Source</th>
+            <th className="px-4 py-3 font-semibold">Salary</th>
+            <th className="px-4 py-3 font-semibold">Applied</th>
           </tr>
         </thead>
         <tbody>
-          {applications.map((application) => (
+          {applications.map((a) => (
             <tr
-              key={application.id}
-              onClick={() => onOpen(application)}
-              className="cursor-pointer border-t border-line/[0.08] hover:bg-surface-2 "
+              key={a.id}
+              onClick={() => onOpen(a)}
+              className="cursor-pointer border-b border-line/[0.05] last:border-0 transition hover:bg-line/[0.03]"
             >
-              <td className="px-4 py-2 font-medium">{application.company.name}</td>
-              <td className="px-4 py-2">{application.role}</td>
-              <td className="px-4 py-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_META[application.status].badge}`}
-                >
-                  {STATUS_META[application.status].label}
+              <td className="px-4 py-2.5 font-medium text-content">{a.company.name}</td>
+              <td className="px-4 py-2.5 text-muted">{a.role}</td>
+              <td className="px-4 py-2.5">
+                <span className={STATUS_META[a.status].badge}>{STATUS_META[a.status].label}</span>
+              </td>
+              <td className="px-4 py-2.5 text-muted">{a.source ?? "–"}</td>
+              <td className="px-4 py-2.5 tabular-nums text-muted">{formatSalary(a) ?? "–"}</td>
+              <td className="px-4 py-2.5 tabular-nums text-muted">
+                <span className="flex items-center gap-1">
+                  {a.applied_on ? <Icon name="calendar" size={12} /> : null}
+                  {a.applied_on ?? "–"}
                 </span>
               </td>
-              <td className="px-4 py-2 text-muted">{application.source ?? "–"}</td>
-              <td className="px-4 py-2 text-muted">{formatSalary(application) ?? "–"}</td>
-              <td className="px-4 py-2 text-muted">{application.applied_on ?? "–"}</td>
             </tr>
           ))}
         </tbody>
