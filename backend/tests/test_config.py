@@ -14,9 +14,14 @@ PROD_OK = {
 }
 
 
-def test_dev_defaults_are_usable() -> None:
-    settings = Settings()
+def test_dev_defaults_are_usable(monkeypatch: pytest.MonkeyPatch) -> None:
+    # CI exports DATABASE_URL / REDIS_URL for the real services; this test is
+    # about the built-in zero-setup defaults, so clear the environment first.
+    for var in ("DATABASE_URL", "REDIS_URL", "ENVIRONMENT", "CELERY_EAGER", "JWT_SECRET"):
+        monkeypatch.delenv(var, raising=False)
+    settings = Settings(_env_file=None)
     assert settings.database_url.startswith("sqlite")
+    assert settings.redis_url.startswith("fakeredis")
     assert not settings.is_production
 
 
