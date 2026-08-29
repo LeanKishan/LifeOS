@@ -37,3 +37,24 @@ npm run lint        # eslint
 ```
 
 CI runs both. There is no simulator in CI, so those are the gate.
+
+## Building with EAS
+
+[`eas.json`](eas.json) defines three profiles, each pointing at a different
+backend via `EXPO_PUBLIC_API_URL`:
+
+| Profile | Distribution | `EXPO_PUBLIC_API_URL` |
+| --- | --- | --- |
+| `development` | dev client, internal | `http://localhost:8000/api` |
+| `preview` | internal (ad-hoc / APK) | staging |
+| `production` | store, `autoIncrement` | prod |
+
+```bash
+npm i -g eas-cli
+eas login
+eas build --profile preview --platform android
+eas submit --profile production --platform ios
+```
+
+`appVersionSource: "remote"` lets EAS own the build number; edit the URLs and
+`app.json` bundle identifiers before a real build.

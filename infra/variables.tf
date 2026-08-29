@@ -106,6 +106,24 @@ variable "db_deletion_protection" {
   default = true
 }
 
+variable "high_availability" {
+  description = "Multi-AZ RDS + a Redis replica with automatic failover. Roughly doubles the DB/cache spend."
+  type        = bool
+  default     = false
+}
+
+variable "waf_enabled" {
+  description = "Attach an AWS WAF (managed common + bad-inputs rule sets + a per-IP rate rule) to the ALB."
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit" {
+  description = "WAF per-IP request ceiling over a 5-minute window."
+  type        = number
+  default     = 3000
+}
+
 variable "log_retention_days" {
   type    = number
   default = 30

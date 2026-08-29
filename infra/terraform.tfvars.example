@@ -24,3 +24,11 @@ redis_node_type   = "cache.t4g.micro"
 # Set false in a throwaway environment so `terraform destroy` doesn't stall on
 # the final-snapshot / deletion-protection guards.
 db_deletion_protection = true
+
+# Multi-AZ RDS + a Redis replica with automatic failover. Off by default
+# (roughly doubles the DB/cache line items).
+high_availability = false
+
+# AWS WAF on the ALB (managed common + bad-inputs rule sets + a per-IP rate rule).
+waf_enabled    = true
+waf_rate_limit = 3000

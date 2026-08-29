@@ -452,10 +452,16 @@ gains an `infra` job (`terraform validate` on the stack and the bootstrap,
 `shellcheck` on the deploy scripts). An actual `terraform apply` needs an AWS
 account and is not part of CI.
 
-**Deferred.** Blue/green (CodeDeploy) instead of rolling; multi-AZ RDS + a Redis
-replica; WAF on the ALB; CloudFront in front of the SPA; the Redis pub/sub WS
-fan-out consumer — now actually needed, since M7's in-process `ConnectionManager`
-only reaches clients on the *same* API task (ADR-0017).
+**Later additions.** `high_availability` (var, default off) flips RDS to Multi-AZ
+and gives Redis a failover replica; `waf_enabled` (var, default on) attaches an
+AWS WAF to the ALB (managed common + bad-inputs rule sets + a per-IP rate rule).
+Both are `count`/`bool`-gated so they don't disturb the base stack.
+
+**Still deferred.** Blue/green (CodeDeploy) instead of rolling deploys;
+CloudFront in front of the SPA; AMP + an ADOT sidecar to scrape ECS into managed
+Prometheus (the app already exposes `/metrics`) — each needs a live account to
+tune and isn't worth guessing at. The Redis pub/sub WS fan-out consumer that was
+listed here shipped in M14 (ADR-0024).
 
 ## ADR-0024 — Observability: stdlib logging, `prometheus_client`, Redis WS fan-out
 

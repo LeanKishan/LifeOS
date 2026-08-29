@@ -221,9 +221,12 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
       ECR, runs migrations as a one-off task, rolls the services
 - [x] CI `infra` job: `terraform validate` (stack + bootstrap) + `shellcheck`
 - [ ] Actual `terraform apply` to a live account (needs AWS credentials)
-- [ ] Blue/green via CodeDeploy; multi-AZ RDS + Redis replica → later
-- [ ] WAF on the ALB, CloudFront in front of the SPA → later
-- [ ] Redis pub/sub WS fan-out consumer — now needed (multiple API tasks) → M14
+- [x] Multi-AZ RDS + Redis failover replica behind `high_availability` (M21)
+- [x] WAF on the ALB — managed common + bad-inputs rule sets + per-IP rate rule
+      behind `waf_enabled` (M21)
+- [x] Redis pub/sub WS fan-out consumer — shipped in M14 (ADR-0024)
+- [ ] Blue/green via CodeDeploy; CloudFront in front of the SPA; AMP + ADOT
+      sidecar for cloud Prometheus → need a live account to tune
 
 ## M14 — Monitoring
 - [x] Structured JSON logging (stdlib formatter, `LOG_JSON`), one line per
@@ -254,4 +257,6 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
       change, interviews, notes
 - [x] CI `mobile` job: `tsc --noEmit` + `eslint`
 - [ ] Live updates (WS hook not ported), push notifications, offline cache
-- [ ] Remaining feature modules; EAS build/submit → later
+- [x] EAS build/submit config (M20) — `eas.json` with dev/preview/production
+      profiles, per-profile `EXPO_PUBLIC_API_URL`
+- [ ] Remaining feature modules → later

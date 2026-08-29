@@ -1,0 +1,5 @@
+# Extra excludes for the EAS build upload (on top of .gitignore).
+/.expo
+/dist
+/web-build
+*.log

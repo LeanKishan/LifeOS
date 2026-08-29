@@ -73,6 +73,11 @@ it's shaped this way.
   manages infrastructure; it won't fight a deploy.
 - **One NAT gateway**, not one per AZ — the biggest single cost here and not
   worth HA for a portfolio deploy. S3 goes over a gateway endpoint, not the NAT.
+- **`high_availability = true`** flips RDS to Multi-AZ and adds a Redis replica
+  with automatic failover (≈2× the DB/cache spend). Off by default.
+- **`waf_enabled = true`** (default) attaches an AWS WAF to the ALB — the
+  managed common + known-bad-inputs rule sets and a per-IP rate rule
+  (`waf_rate_limit`, default 3000 / 5 min).
 - **`terraform destroy`**: set `db_deletion_protection = false` first, or RDS
   blocks the teardown.
 - **Estimated cost** at the default sizes: roughly \$70–110/month, dominated by

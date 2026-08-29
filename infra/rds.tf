@@ -20,7 +20,7 @@ resource "aws_db_instance" "this" {
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids  = [aws_security_group.database.id]
-  multi_az               = false
+  multi_az               = var.high_availability
   publicly_accessible    = false
 
   backup_retention_period    = 7
