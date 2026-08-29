@@ -631,3 +631,31 @@ everywhere would be churn for no visible gain.
 everyone. Per-user local send time means the beat waking every 15 min and
 checking each user's local clock — a real change, and low value until there are
 real users.
+
+## ADR-0029 — Render: one self-contained service, no hardcoded hostnames
+
+**Decision.** The Render Blueprint deploys a single Docker web service. A
+multi-stage image builds the SPA (`node` stage → `frontend/dist`) and the
+FastAPI app serves it: `StaticFiles` on `/assets`, and a catch-all
+`GET /{path:path}` (registered after every `/api/*` router, path-traversal
+guarded) that returns a real file or falls back to `index.html`. Opt-in via
+`STATIC_DIR`; empty → API-only, unchanged. HTML responses get a real CSP
+(`_SPA_CSP`: `script-src 'self'`, inline styles, Google Fonts hosts); JSON
+responses keep the `default-src 'none'` deny-all.
+
+**Why.** The first blueprint declared two `type: web` services named
+`lifeos-api` / `lifeos-web`, wired together with a hardcoded
+`https://lifeos-web.onrender.com` in `CORS_ORIGINS` and
+`https://lifeos-api.onrender.com` in `VITE_API_URL`. Render (like most PaaS)
+hands out **globally unique, first-come** subdomains — both generic names were
+already taken by unrelated apps, so a fresh `blueprint apply` could never bind
+them and the frontend would have pointed `VITE_API_URL` at a stranger's box.
+One same-origin service removes every cross-service URL: no `VITE_API_URL`, no
+`CORS_ORIGINS`, nothing to hardcode. Whatever hostname Render assigns is the
+app.
+
+**Cost.** The frontend redeploys on every backend change (shared image) and a
+CDN no longer fronts the static assets — both irrelevant at this scale, and
+`starter` plan + Render's edge cache cover it if that changes. The split
+`frontend/Dockerfile` + `backend/Dockerfile` images stay in the repo for a
+CDN-fronted or independently-scaled deploy later.
