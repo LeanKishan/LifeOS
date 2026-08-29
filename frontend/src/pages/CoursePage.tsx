@@ -11,8 +11,7 @@ import {
 } from "@/features/learning/queries";
 
 const inputClass =
-  "w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm outline-none " +
-  "focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900";
+"field-input";
 
 export default function CoursePage() {
   const params = useParams<{ courseId: string }>();
@@ -40,7 +39,7 @@ export default function CoursePage() {
   const [back, setBack] = useState("");
   const [noteBody, setNoteBody] = useState("");
 
-  if (isLoading) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (isLoading) return <p className="text-sm text-muted">Loading…</p>;
   if (!course) return <p className="text-sm text-rose-600">Course not found.</p>;
 
   function submitCard(event: FormEvent): void {
@@ -60,11 +59,11 @@ export default function CoursePage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link to="/learning" className="text-xs text-slate-400 hover:underline">
+          <Link to="/learning" className="text-xs text-faint hover:underline">
             ← Learning
           </Link>
           <h2 className="text-xl font-semibold">{course.title}</h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted">
             {Math.round(course.progress * 100)}% · {course.flashcards_due} card
             {course.flashcards_due === 1 ? "" : "s"} due
           </p>
@@ -73,7 +72,7 @@ export default function CoursePage() {
           <button
             type="button"
             onClick={() => setReviewing(true)}
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+            className="rounded-md btn-primary btn-md"
           >
             Review ({course.flashcards_due})
           </button>
@@ -81,8 +80,8 @@ export default function CoursePage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="mb-3 text-sm font-medium text-slate-500">Lessons</h3>
+        <section className="surface-card">
+          <h3 className="mb-3 text-sm font-medium text-muted">Lessons</h3>
           <ul className="space-y-1.5">
             {course.lessons.map((lesson) => (
               <li key={lesson.id} className="flex items-center gap-2 text-sm">
@@ -93,13 +92,13 @@ export default function CoursePage() {
                     toggleLesson.mutate({ id: lesson.id, completed: e.target.checked })
                   }
                 />
-                <span className={lesson.completed ? "text-slate-400 line-through" : ""}>
+                <span className={lesson.completed ? "text-faint line-through" : ""}>
                   {lesson.title}
                 </span>
                 <button
                   type="button"
                   onClick={() => removeLesson.mutate(lesson.id)}
-                  className="ml-auto text-slate-300 hover:text-rose-500"
+                  className="ml-auto text-faint hover:text-rose-500"
                   aria-label="Delete lesson"
                 >
                   ✕
@@ -107,7 +106,7 @@ export default function CoursePage() {
               </li>
             ))}
             {course.lessons.length === 0 && (
-              <li className="text-sm text-slate-400">No lessons yet.</li>
+              <li className="text-sm text-faint">No lessons yet.</li>
             )}
           </ul>
           <form
@@ -127,23 +126,23 @@ export default function CoursePage() {
           </form>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="mb-3 text-sm font-medium text-slate-500">
+        <section className="surface-card">
+          <h3 className="mb-3 text-sm font-medium text-muted">
             Flashcards ({flashcards.length})
           </h3>
           <ul className="space-y-1.5">
             {flashcards.map((card) => (
               <li
                 key={card.id}
-                className="flex items-center justify-between rounded-md bg-slate-50 px-2 py-1 text-sm dark:bg-slate-800"
+                className="flex items-center justify-between rounded-md bg-surface-2 px-2 py-1 text-sm "
               >
                 <span className="truncate">
-                  {card.front} <span className="text-slate-400">→ {card.back}</span>
+                  {card.front} <span className="text-faint">→ {card.back}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => removeCard.mutate(card.id)}
-                  className="text-slate-300 hover:text-rose-500"
+                  className="text-faint hover:text-rose-500"
                   aria-label="Delete flashcard"
                 >
                   ✕
@@ -167,7 +166,7 @@ export default function CoursePage() {
               />
               <button
                 type="submit"
-                className="shrink-0 rounded-md bg-slate-100 px-3 py-1 text-sm font-medium hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+                className="shrink-0 rounded-md bg-line/[0.08] px-3 py-1 text-sm font-medium hover:bg-line/[0.12] "
               >
                 Add
               </button>
@@ -176,19 +175,19 @@ export default function CoursePage() {
         </section>
       </div>
 
-      <section className="mt-6 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-3 text-sm font-medium text-slate-500">Notes</h3>
+      <section className="mt-6 surface-card">
+        <h3 className="mb-3 text-sm font-medium text-muted">Notes</h3>
         <ul className="space-y-1.5">
           {notes.map((note) => (
             <li
               key={note.id}
-              className="flex items-start justify-between gap-2 rounded-md bg-slate-50 px-2 py-1 text-sm dark:bg-slate-800"
+              className="flex items-start justify-between gap-2 rounded-md bg-surface-2 px-2 py-1 text-sm "
             >
               <span className="whitespace-pre-wrap">{note.body}</span>
               <button
                 type="button"
                 onClick={() => removeNote.mutate(note.id)}
-                className="text-slate-300 hover:text-rose-500"
+                className="text-faint hover:text-rose-500"
                 aria-label="Delete note"
               >
                 ✕
@@ -212,7 +211,7 @@ export default function CoursePage() {
           />
           <button
             type="submit"
-            className="shrink-0 rounded-md bg-slate-100 px-3 py-1 text-sm font-medium hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+            className="shrink-0 rounded-md bg-line/[0.08] px-3 py-1 text-sm font-medium hover:bg-line/[0.12] "
           >
             Add
           </button>

@@ -9,13 +9,13 @@ export function TableView({
   onOpen: (application: Application) => void;
 }) {
   if (applications.length === 0) {
-    return <p className="text-sm text-slate-500">No applications yet.</p>;
+    return <p className="text-sm text-muted">No applications yet.</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+    <div className="overflow-x-auto surface-card p-0">
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
+        <thead className="bg-surface-2 text-xs uppercase text-muted ">
           <tr>
             <th className="px-4 py-2">Company</th>
             <th className="px-4 py-2">Role</th>
@@ -30,7 +30,7 @@ export function TableView({
             <tr
               key={application.id}
               onClick={() => onOpen(application)}
-              className="cursor-pointer border-t border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
+              className="cursor-pointer border-t border-line/[0.08] hover:bg-surface-2 "
             >
               <td className="px-4 py-2 font-medium">{application.company.name}</td>
               <td className="px-4 py-2">{application.role}</td>
@@ -41,9 +41,9 @@ export function TableView({
                   {STATUS_META[application.status].label}
                 </span>
               </td>
-              <td className="px-4 py-2 text-slate-500">{application.source ?? "–"}</td>
-              <td className="px-4 py-2 text-slate-500">{formatSalary(application) ?? "–"}</td>
-              <td className="px-4 py-2 text-slate-500">{application.applied_on ?? "–"}</td>
+              <td className="px-4 py-2 text-muted">{application.source ?? "–"}</td>
+              <td className="px-4 py-2 text-muted">{formatSalary(application) ?? "–"}</td>
+              <td className="px-4 py-2 text-muted">{application.applied_on ?? "–"}</td>
             </tr>
           ))}
         </tbody>

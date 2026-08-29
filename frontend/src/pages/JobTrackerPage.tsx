@@ -1,6 +1,13 @@
 import { useState } from "react";
 
 import { Modal } from "@/components/Modal";
+import {
+  Button,
+  EmptyState,
+  LoadingRow,
+  PageHeader,
+  SegmentedControl,
+} from "@/components/ui";
 import { ApplicationDrawer } from "@/features/jobTracker/ApplicationDrawer";
 import { ApplicationForm } from "@/features/jobTracker/ApplicationForm";
 import { BoardView } from "@/features/jobTracker/BoardView";
@@ -18,59 +25,53 @@ export default function JobTrackerPage() {
   const { data: applications = [], isLoading, isError } = useApplications({ sort: "-created_at" });
   const create = useCreateApplication();
 
-  const selected = applications.find((application) => application.id === selectedId) ?? null;
+  const selected = applications.find((a) => a.id === selectedId) ?? null;
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Job Tracker</h2>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-slate-300 text-sm dark:border-slate-700">
-            {(["board", "table"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setView(value)}
-                className={`px-3 py-1.5 capitalize ${
-                  view === value
-                    ? "bg-slate-100 font-medium dark:bg-slate-800"
-                    : "text-slate-500"
-                }`}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
-          >
-            + Application
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Job Tracker"
+        subtitle="Every application, from wishlist to offer."
+        actions={
+          <>
+            <SegmentedControl
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "board", label: "board", icon: "kanban" },
+                { value: "table", label: "table", icon: "layers" },
+              ]}
+            />
+            <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
+              Application
+            </Button>
+          </>
+        }
+      />
 
       <StatCards />
 
       <div className="mt-6">
-        {isLoading && <p className="text-sm text-slate-500">Loading…</p>}
-        {isError && <p className="text-sm text-rose-600">Could not load applications.</p>}
-        {!isLoading && !isError && (
-          <>
-            {applications.length === 0 && (
-              <p className="text-sm text-slate-500">
-                No applications yet — add your first one.
-              </p>
-            )}
-            {applications.length > 0 &&
-              (view === "board" ? (
-                <BoardView applications={applications} onOpen={(a) => setSelectedId(a.id)} />
-              ) : (
-                <TableView applications={applications} onOpen={(a) => setSelectedId(a.id)} />
-              ))}
-          </>
+        {isLoading && <LoadingRow />}
+        {isError && <p className="text-sm text-rose-400">Could not load applications.</p>}
+        {!isLoading && !isError && applications.length === 0 && (
+          <EmptyState
+            icon="briefcase"
+            title="No applications yet"
+            description="Add your first one and watch the pipeline fill in."
+            action={
+              <Button variant="primary" icon="plus" onClick={() => setCreating(true)}>
+                Add application
+              </Button>
+            }
+          />
         )}
+        {!isLoading && !isError && applications.length > 0 &&
+          (view === "board" ? (
+            <BoardView applications={applications} onOpen={(a) => setSelectedId(a.id)} />
+          ) : (
+            <TableView applications={applications} onOpen={(a) => setSelectedId(a.id)} />
+          ))}
       </div>
 
       {creating && (
@@ -79,9 +80,7 @@ export default function JobTrackerPage() {
             showCompany
             submitLabel="Add application"
             pending={create.isPending}
-            onSubmit={(input) =>
-              create.mutate(input, { onSuccess: () => setCreating(false) })
-            }
+            onSubmit={(input) => create.mutate(input, { onSuccess: () => setCreating(false) })}
           />
         </Modal>
       )}

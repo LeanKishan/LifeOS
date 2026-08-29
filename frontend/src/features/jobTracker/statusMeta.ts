@@ -1,8 +1,11 @@
+import type { Tone } from "@/components/ui";
 import type { ApplicationStatus } from "@/features/jobTracker/api";
 
 interface StatusMeta {
   label: string;
   dot: string;
+  tone: Tone;
+  /** ready-to-use pill classes (pill base + tone) for non-<Badge> spots */
   badge: string;
 }
 
@@ -17,47 +20,17 @@ export const STATUS_ORDER: ApplicationStatus[] = [
   "withdrawn",
 ];
 
+const B = (tone: string) => `pill ${tone}`;
+
 export const STATUS_META: Record<ApplicationStatus, StatusMeta> = {
-  wishlist: {
-    label: "Wishlist",
-    dot: "bg-slate-400",
-    badge: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  },
-  applied: {
-    label: "Applied",
-    dot: "bg-blue-500",
-    badge: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  },
-  assessment: {
-    label: "Assessment",
-    dot: "bg-violet-500",
-    badge: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
-  },
-  interviewing: {
-    label: "Interviewing",
-    dot: "bg-amber-500",
-    badge: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  },
-  offer: {
-    label: "Offer",
-    dot: "bg-emerald-500",
-    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  },
-  accepted: {
-    label: "Accepted",
-    dot: "bg-emerald-600",
-    badge: "bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-200",
-  },
-  rejected: {
-    label: "Rejected",
-    dot: "bg-rose-500",
-    badge: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
-  },
-  withdrawn: {
-    label: "Withdrawn",
-    dot: "bg-slate-400",
-    badge: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
-  },
+  wishlist: { label: "Wishlist", dot: "bg-slate-400", tone: "neutral", badge: B("bg-line/[0.06] text-muted ring-line/10") },
+  applied: { label: "Applied", dot: "bg-blue-400", tone: "blue", badge: B("bg-blue-500/12 text-blue-300 ring-blue-500/20") },
+  assessment: { label: "Assessment", dot: "bg-violet-400", tone: "violet", badge: B("bg-violet-500/12 text-violet-300 ring-violet-500/20") },
+  interviewing: { label: "Interviewing", dot: "bg-amber-400", tone: "amber", badge: B("bg-amber-500/12 text-amber-300 ring-amber-500/20") },
+  offer: { label: "Offer", dot: "bg-brand-hi", tone: "brand", badge: B("bg-brand/10 text-brand-hi ring-brand/20") },
+  accepted: { label: "Accepted", dot: "bg-emerald-400", tone: "emerald", badge: B("bg-brand/12 text-emerald-300 ring-emerald-500/20") },
+  rejected: { label: "Rejected", dot: "bg-rose-400", tone: "rose", badge: B("bg-rose-500/12 text-rose-300 ring-rose-500/20") },
+  withdrawn: { label: "Withdrawn", dot: "bg-slate-500", tone: "neutral", badge: B("bg-line/[0.06] text-faint ring-line/10") },
 };
 
 export function formatSalary(app: {

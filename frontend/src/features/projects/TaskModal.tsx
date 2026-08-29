@@ -54,7 +54,7 @@ export function TaskModal({
   return (
     <Modal title={task ? task.title : "Task"} onClose={onClose}>
       {isLoading || !task ? (
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : (
         <div className="space-y-5 text-sm">
           <div className="flex items-center gap-2">
@@ -70,21 +70,21 @@ export function TaskModal({
                 const value = event.target.value.trim();
                 if (value && value !== task.title) patch.mutate({ title: value });
               }}
-              className={`w-full rounded-md border border-slate-300 px-3 py-2 font-medium outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 ${
-                task.done ? "text-slate-400 line-through" : ""
+              className={`w-full rounded-md border border-line/[0.14] px-3 py-2 font-medium outline-none focus:border-brand/60   ${
+                task.done ? "text-faint line-through" : ""
               }`}
             />
           </div>
 
           <div className="flex gap-3">
             <label className="flex-1">
-              <span className="mb-1 block text-xs text-slate-500">Priority</span>
+              <span className="mb-1 block text-xs text-muted">Priority</span>
               <select
                 value={task.priority}
                 onChange={(event) =>
                   patch.mutate({ priority: event.target.value as pj.TaskPriority })
                 }
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+                className="w-full rounded-md border border-line/[0.14] px-2 py-1.5 outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
               >
                 {PRIORITY_ORDER.map((value) => (
                   <option key={value} value={value}>
@@ -94,29 +94,29 @@ export function TaskModal({
               </select>
             </label>
             <label className="flex-1">
-              <span className="mb-1 block text-xs text-slate-500">Due</span>
+              <span className="mb-1 block text-xs text-muted">Due</span>
               <input
                 type="date"
                 defaultValue={task.due_on ?? ""}
                 onChange={(event) => patch.mutate({ due_on: event.target.value || null })}
-                className="w-full rounded-md border border-slate-300 px-2 py-1.5 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+                className="w-full rounded-md border border-line/[0.14] px-2 py-1.5 outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
               />
             </label>
           </div>
 
           <div>
-            <span className="mb-1 block text-xs text-slate-500">Description</span>
+            <span className="mb-1 block text-xs text-muted">Description</span>
             <textarea
               rows={3}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+              className="w-full rounded-md border border-line/[0.14] px-3 py-2 outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
             />
             {description !== (task.description ?? "") && (
               <button
                 type="button"
                 onClick={() => patch.mutate({ description: description || null })}
-                className="mt-1 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+                className="mt-1 rounded-md btn-primary btn-sm"
               >
                 Save description
               </button>
@@ -124,7 +124,7 @@ export function TaskModal({
           </div>
 
           <div>
-            <span className="mb-1 block text-xs text-slate-500">Labels</span>
+            <span className="mb-1 block text-xs text-muted">Labels</span>
             <div className="flex flex-wrap gap-1.5">
               {projectLabels.map((label) => {
                 const active = task.labels.some((assigned) => assigned.id === label.id);
@@ -134,7 +134,7 @@ export function TaskModal({
                     type="button"
                     onClick={() => toggleLabel(label.id)}
                     className={`rounded px-2 py-0.5 text-xs font-medium ${
-                      active ? "text-white" : "text-slate-500 opacity-60"
+                      active ? "text-white" : "text-muted opacity-60"
                     }`}
                     style={{ backgroundColor: active ? label.color : "transparent", border: `1px solid ${label.color}` }}
                   >
@@ -153,14 +153,14 @@ export function TaskModal({
                   value={labelName}
                   onChange={(event) => setLabelName(event.target.value)}
                   placeholder="+ label"
-                  className="w-20 rounded border border-slate-300 px-1.5 py-0.5 text-xs outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+                  className="w-20 rounded border border-line/[0.14] px-1.5 py-0.5 text-xs outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
                 />
               </form>
             </div>
           </div>
 
           <div>
-            <span className="mb-1 block text-xs text-slate-500">
+            <span className="mb-1 block text-xs text-muted">
               Subtasks {task.subtask_done}/{task.subtask_total}
             </span>
             <ul className="space-y-1">
@@ -173,13 +173,13 @@ export function TaskModal({
                       patchSub.mutate({ id: subtask.id, done: event.target.checked })
                     }
                   />
-                  <span className={subtask.done ? "text-slate-400 line-through" : ""}>
+                  <span className={subtask.done ? "text-faint line-through" : ""}>
                     {subtask.title}
                   </span>
                   <button
                     type="button"
                     onClick={() => delSub.mutate(subtask.id)}
-                    className="ml-auto text-slate-300 hover:text-rose-500"
+                    className="ml-auto text-faint hover:text-rose-500"
                     aria-label="Delete subtask"
                   >
                     ✕
@@ -199,24 +199,24 @@ export function TaskModal({
                 value={subtaskTitle}
                 onChange={(event) => setSubtaskTitle(event.target.value)}
                 placeholder="+ Add subtask"
-                className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+                className="w-full rounded-md border border-line/[0.14] px-2 py-1 text-sm outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
               />
             </form>
           </div>
 
           <div>
-            <span className="mb-1 block text-xs text-slate-500">Comments</span>
+            <span className="mb-1 block text-xs text-muted">Comments</span>
             <ul className="space-y-1.5">
               {task.comments.map((comment) => (
                 <li
                   key={comment.id}
-                  className="flex items-start gap-2 rounded-md bg-slate-50 px-2 py-1 dark:bg-slate-800"
+                  className="flex items-start gap-2 rounded-md bg-surface-2 px-2 py-1 "
                 >
                   <span className="flex-1">{comment.body}</span>
                   <button
                     type="button"
                     onClick={() => delComment.mutate(comment.id)}
-                    className="text-slate-300 hover:text-rose-500"
+                    className="text-faint hover:text-rose-500"
                     aria-label="Delete comment"
                   >
                     ✕
@@ -236,11 +236,11 @@ export function TaskModal({
                 value={commentBody}
                 onChange={(event) => setCommentBody(event.target.value)}
                 placeholder="Add a comment…"
-                className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+                className="flex-1 rounded-md border border-line/[0.14] px-2 py-1 text-sm outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
               />
               <button
                 type="submit"
-                className="rounded-md bg-emerald-600 px-3 py-1 text-sm font-medium text-white hover:bg-emerald-700"
+                className="rounded-md btn-primary btn-md"
               >
                 Post
               </button>

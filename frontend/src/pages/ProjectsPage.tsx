@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
+import { Icon } from "@/components/icons";
+import { Button, EmptyState, Input, LoadingRow, PageHeader } from "@/components/ui";
 import { useCreateProject, useProjects } from "@/features/projects/queries";
 
 export default function ProjectsPage() {
@@ -16,42 +18,55 @@ export default function ProjectsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Projects</h2>
-        <form onSubmit={submit} className="flex gap-2">
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="New project name"
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
-          />
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            Create
-          </button>
-        </form>
-      </div>
+      <PageHeader
+        title="Projects"
+        subtitle="Kanban boards for everything you're shipping."
+        actions={
+          <form onSubmit={submit} className="flex gap-2">
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="New project name"
+              className="w-44 sm:w-52"
+            />
+            <Button type="submit" variant="primary" icon="plus" loading={create.isPending}>
+              Create
+            </Button>
+          </form>
+        }
+      />
 
-      {isLoading && <p className="text-sm text-slate-500">Loading…</p>}
+      {isLoading && <LoadingRow />}
       {!isLoading && projects.length === 0 && (
-        <p className="text-sm text-slate-500">No projects yet — create your first one.</p>
+        <EmptyState
+          icon="kanban"
+          title="No projects yet"
+          description="Create your first board to start moving tasks."
+        />
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {projects.map((project, i) => (
           <Link
             key={project.id}
             to={`/projects/${project.id}`}
-            className="rounded-lg border border-slate-200 bg-white p-4 hover:border-emerald-400 dark:border-slate-800 dark:bg-slate-900"
+            className={`surface-card card-hover group animate-fade-in-up stagger-${Math.min(i + 1, 6)} p-5`}
           >
-            <div className="font-medium">{project.name}</div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-semibold text-content">{project.name}</div>
+              <Icon
+                name="arrowRight"
+                size={16}
+                className="text-faint transition group-hover:translate-x-0.5 group-hover:text-brand-hi"
+              />
+            </div>
             {project.description && (
-              <p className="mt-1 line-clamp-2 text-sm text-slate-500">{project.description}</p>
+              <p className="mt-1.5 line-clamp-2 text-sm text-muted">{project.description}</p>
             )}
-            <div className="mt-3 text-xs text-slate-400">{project.task_count} tasks</div>
+            <div className="mt-4 flex items-center gap-1.5 text-xs text-faint">
+              <Icon name="layers" size={13} />
+              {project.task_count} task{project.task_count === 1 ? "" : "s"}
+            </div>
           </Link>
         ))}
       </div>

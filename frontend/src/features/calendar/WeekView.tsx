@@ -1,5 +1,6 @@
 import type { Occurrence } from "@/features/calendar/api";
 import { fmtTime, sameDay, weekDays } from "@/features/calendar/dateUtils";
+import { cn } from "@/lib/cn";
 
 export function WeekView({
   anchor,
@@ -16,57 +17,50 @@ export function WeekView({
   const today = new Date();
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-7">
       {days.map((day) => {
-        const dayOccurrences = occurrences
-          .filter((occurrence) => sameDay(new Date(occurrence.start_at), day))
+        const dayOcc = occurrences
+          .filter((o) => sameDay(new Date(o.start_at), day))
           .sort((a, b) => a.start_at.localeCompare(b.start_at));
 
         return (
-          <div
-            key={day.toISOString()}
-            className="rounded-lg border border-slate-200 p-2 dark:border-slate-800"
-          >
+          <div key={day.toISOString()} className="surface-card p-3">
             <button
               type="button"
               onClick={() => onPickDay(day)}
               className="mb-2 block text-left text-xs font-medium"
             >
-              <span className="text-slate-400">
+              <span className="text-faint">
                 {day.toLocaleDateString([], { weekday: "short" })}
               </span>{" "}
               <span
-                className={
-                  sameDay(day, today) ? "font-semibold text-emerald-600" : "text-slate-600 dark:text-slate-300"
-                }
+                className={cn(
+                  sameDay(day, today) ? "font-bold text-brand-hi" : "text-content",
+                )}
               >
                 {day.getDate()}
               </span>
             </button>
-            <div className="space-y-1">
-              {dayOccurrences.map((occurrence, index) => (
+            <div className="space-y-1.5">
+              {dayOcc.map((o, i) => (
                 <button
-                  key={`${occurrence.event_id}-${index}`}
+                  key={`${o.event_id}-${i}`}
                   type="button"
-                  onClick={() => onOpenOccurrence(occurrence)}
-                  className="block w-full rounded bg-emerald-100 px-1.5 py-1 text-left text-[11px] text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
+                  onClick={() => onOpenOccurrence(o)}
+                  className="block w-full rounded-md border border-brand/20 bg-brand/10 px-2 py-1.5 text-left text-[11px] text-brand-hi transition hover:bg-brand/20"
                 >
-                  <div className="font-medium">
-                    {occurrence.title}
-                    {occurrence.overridden && (
-                      <span title="This occurrence was changed"> ✎</span>
-                    )}
+                  <div className="font-medium text-content">
+                    {o.title}
+                    {o.overridden && <span title="Changed"> ✎</span>}
                   </div>
-                  {!occurrence.all_day && (
-                    <div className="tabular-nums text-emerald-600 dark:text-emerald-500">
-                      {fmtTime(new Date(occurrence.start_at))}
+                  {!o.all_day && (
+                    <div className="tabular-nums opacity-80">
+                      {fmtTime(new Date(o.start_at))}
                     </div>
                   )}
                 </button>
               ))}
-              {dayOccurrences.length === 0 && (
-                <p className="text-[11px] text-slate-300">—</p>
-              )}
+              {dayOcc.length === 0 && <p className="text-[11px] text-faint">—</p>}
             </div>
           </div>
         );

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { Icon } from "@/components/icons";
+import { Button, PageHeader } from "@/components/ui";
 import { sendChatStream, type ChatTurn } from "@/features/coach/api";
+import { cn } from "@/lib/cn";
 
 type Bubble = ChatTurn & { tools?: string[]; streaming?: boolean };
 
@@ -39,16 +42,13 @@ export default function CoachPage() {
     setInput("");
     setBusy(true);
 
-    // Mutate only the trailing (streaming) assistant bubble.
     const patchLast = (fn: (b: Bubble) => Bubble) =>
       setBubbles((prev) => prev.map((b, i) => (i === prev.length - 1 ? fn(b) : b)));
 
     try {
       await sendChatStream(history, {
-        onDelta: (chunk) =>
-          patchLast((b) => ({ ...b, content: b.content + chunk })),
-        onTool: (name) =>
-          patchLast((b) => ({ ...b, tools: [...(b.tools ?? []), name] })),
+        onDelta: (chunk) => patchLast((b) => ({ ...b, content: b.content + chunk })),
+        onTool: (name) => patchLast((b) => ({ ...b, tools: [...(b.tools ?? []), name] })),
         onDone: () => patchLast((b) => ({ ...b, streaming: false })),
         onError: () =>
           patchLast((b) => ({
@@ -58,7 +58,7 @@ export default function CoachPage() {
           })),
         onUnavailable: () => {
           setUnavailable(true);
-          setBubbles((prev) => prev.slice(0, -1)); // drop the empty assistant bubble
+          setBubbles((prev) => prev.slice(0, -1));
         },
       });
     } finally {
@@ -67,31 +67,38 @@ export default function CoachPage() {
   }
 
   return (
-    <div>
-      <h2 className="mb-4 text-xl font-semibold">Assistant</h2>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader title="Assistant" subtitle="It reads your data and can act on it." />
 
       {unavailable && (
-        <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+        <p className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-300">
+          <Icon name="bell" size={15} />
           The assistant isn't configured on this server (no API key).
         </p>
       )}
 
       <div
         ref={scrollRef}
-        className="mb-3 h-[26rem] space-y-3 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+        className="surface-card mb-3 h-[28rem] space-y-4 overflow-y-auto p-5"
       >
         {bubbles.length === 0 && (
-          <div className="space-y-2 text-sm text-slate-500">
-            <p>Ask about your tasks, calendar, finances or flashcards — or tell me to add something.</p>
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map((suggestion) => (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand/10 text-brand-hi">
+              <Icon name="sparkles" size={22} />
+            </span>
+            <p className="max-w-sm text-sm text-muted">
+              Ask about your tasks, calendar, finances or flashcards — or tell it to add
+              something.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {SUGGESTIONS.map((s) => (
                 <button
-                  key={suggestion}
+                  key={s}
                   type="button"
-                  onClick={() => setInput(suggestion)}
-                  className="rounded-full border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                  onClick={() => setInput(s)}
+                  className="rounded-full border border-line/[0.12] bg-surface-2 px-3 py-1.5 text-xs text-muted transition hover:border-brand/40 hover:text-content"
                 >
-                  {suggestion}
+                  {s}
                 </button>
               ))}
             </div>
@@ -101,29 +108,30 @@ export default function CoachPage() {
         {bubbles.map((bubble, index) => (
           <div
             key={index}
-            className={bubble.role === "user" ? "flex justify-end" : "flex justify-start"}
+            className={cn("flex", bubble.role === "user" ? "justify-end" : "justify-start")}
           >
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+              className={cn(
+                "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm",
                 bubble.role === "user"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800"
-              }`}
+                  ? "bg-gradient-to-b from-brand-hi to-brand text-[#04140d]"
+                  : "border border-line/[0.08] bg-surface-2 text-content",
+              )}
             >
               <p className="whitespace-pre-wrap">
                 {bubble.content}
                 {bubble.streaming && (
-                  <span className="ml-0.5 inline-block animate-pulse">▋</span>
+                  <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-current align-middle" />
                 )}
               </p>
               {bubble.tools && bubble.tools.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {bubble.tools.map((tool, toolIndex) => (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {bubble.tools.map((tool, i) => (
                     <span
-                      key={`${tool}-${toolIndex}`}
-                      className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                      key={`${tool}-${i}`}
+                      className="inline-flex items-center gap-1 rounded-md bg-black/10 px-1.5 py-0.5 text-[10px] font-medium"
                     >
-                      {tool}
+                      <Icon name="refresh" size={10} /> {tool}
                     </span>
                   ))}
                 </div>
@@ -131,7 +139,6 @@ export default function CoachPage() {
             </div>
           </div>
         ))}
-
       </div>
 
       <form onSubmit={submit} className="flex gap-2">
@@ -140,15 +147,17 @@ export default function CoachPage() {
           onChange={(event) => setInput(event.target.value)}
           placeholder="Message the assistant…"
           disabled={unavailable}
-          className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900"
+          className="field-input flex-1"
         />
-        <button
+        <Button
           type="submit"
-          disabled={busy || unavailable}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          variant="primary"
+          icon="send"
+          loading={busy}
+          disabled={unavailable}
         >
           Send
-        </button>
+        </Button>
       </form>
     </div>
   );

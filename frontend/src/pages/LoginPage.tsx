@@ -34,7 +34,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell title="Log in" error={error}>
+    <AuthShell title="Welcome back" subtitle="Log in to your workspace." error={error}>
       <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <Field
@@ -46,9 +46,9 @@ export default function LoginPage() {
         />
         <SubmitButton busy={busy}>Log in</SubmitButton>
       </form>
-      <p className="mt-4 text-sm text-slate-500">
+      <p className="mt-5 text-sm text-muted">
         No account?{" "}
-        <Link to="/register" className="text-emerald-600 hover:underline">
+        <Link to="/register" className="font-semibold text-brand-hi hover:underline">
           Create one
         </Link>
       </p>

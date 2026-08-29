@@ -7,8 +7,7 @@ import { parseAmountToCents } from "@/features/finance/money";
 import { toDateInput } from "@/features/calendar/dateUtils";
 
 const inputClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none " +
-  "focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900";
+"field-input";
 
 export function TransactionForm({
   accounts,
@@ -58,13 +57,13 @@ export function TransactionForm({
   return (
     <form onSubmit={submit} className="space-y-3">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
+        <p role="alert" className="rounded-md border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-300 dark:">
           {error}
         </p>
       )}
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="mb-1 block text-xs text-slate-500">Account</span>
+          <span className="mb-1 block text-xs text-muted">Account</span>
           <select
             className={inputClass}
             value={accountId}
@@ -78,7 +77,7 @@ export function TransactionForm({
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs text-slate-500">Type</span>
+          <span className="mb-1 block text-xs text-muted">Type</span>
           <select
             className={inputClass}
             value={kind}
@@ -94,7 +93,7 @@ export function TransactionForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="mb-1 block text-xs text-slate-500">Amount</span>
+          <span className="mb-1 block text-xs text-muted">Amount</span>
           <input
             className={inputClass}
             placeholder="0.00"
@@ -103,7 +102,7 @@ export function TransactionForm({
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs text-slate-500">Date</span>
+          <span className="mb-1 block text-xs text-muted">Date</span>
           <input
             type="date"
             className={inputClass}
@@ -113,7 +112,7 @@ export function TransactionForm({
         </label>
       </div>
       <label className="block">
-        <span className="mb-1 block text-xs text-slate-500">Category</span>
+        <span className="mb-1 block text-xs text-muted">Category</span>
         <select
           className={inputClass}
           value={categoryId}
@@ -136,7 +135,7 @@ export function TransactionForm({
       <button
         type="submit"
         disabled={create.isPending}
-        className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        className="w-full rounded-md btn-primary btn-md disabled:opacity-50"
       >
         {create.isPending ? "Saving…" : "Add transaction"}
       </button>

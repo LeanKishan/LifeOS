@@ -1,3 +1,4 @@
+import { Icon } from "@/components/icons";
 import type { Application } from "@/features/jobTracker/api";
 import { STATUS_META, STATUS_ORDER, formatSalary } from "@/features/jobTracker/statusMeta";
 
@@ -11,13 +12,18 @@ export function BoardView({
   return (
     <div className="flex gap-4 overflow-x-auto pb-4">
       {STATUS_ORDER.map((status) => {
-        const items = applications.filter((application) => application.status === status);
+        const items = applications.filter((a) => a.status === status);
         return (
-          <div key={status} className="w-64 shrink-0">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <span className={`h-2 w-2 rounded-full ${STATUS_META[status].dot}`} />
+          <div
+            key={status}
+            className="flex w-64 shrink-0 flex-col rounded-2xl border border-line/[0.06] bg-line/[0.02] p-2"
+          >
+            <div className="mb-2 flex items-center gap-2 px-1.5 py-1 text-[13px] font-semibold text-content">
+              <span className={`h-1.5 w-1.5 rounded-full ${STATUS_META[status].dot}`} />
               {STATUS_META[status].label}
-              <span className="text-slate-400">{items.length}</span>
+              <span className="ml-auto rounded-md bg-line/[0.06] px-1.5 text-xs text-faint">
+                {items.length}
+              </span>
             </div>
             <div className="space-y-2">
               {items.map((application) => {
@@ -27,13 +33,19 @@ export function BoardView({
                     key={application.id}
                     type="button"
                     onClick={() => onOpen(application)}
-                    className="block w-full rounded-lg border border-slate-200 bg-white p-3 text-left text-sm hover:border-emerald-400 dark:border-slate-800 dark:bg-slate-900"
+                    className="block w-full rounded-xl border border-line/[0.08] bg-elev p-3 text-left text-sm shadow-card transition hover:-translate-y-0.5 hover:border-brand/40"
                   >
-                    <div className="font-medium">{application.role}</div>
-                    <div className="text-slate-500">{application.company.name}</div>
-                    {salary && <div className="mt-1 text-xs text-slate-400">{salary}</div>}
+                    <div className="font-medium text-content">{application.role}</div>
+                    <div className="text-muted">{application.company.name}</div>
+                    {salary && (
+                      <div className="mt-1.5 flex items-center gap-1 text-xs text-faint">
+                        <Icon name="wallet" size={12} />
+                        {salary}
+                      </div>
+                    )}
                     {application.interviews.length > 0 && (
-                      <div className="mt-1 text-xs text-slate-400">
+                      <div className="mt-1 flex items-center gap-1 text-xs text-faint">
+                        <Icon name="user" size={12} />
                         {application.interviews.length} interview
                         {application.interviews.length > 1 ? "s" : ""}
                       </div>
@@ -42,7 +54,7 @@ export function BoardView({
                 );
               })}
               {items.length === 0 && (
-                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-center text-xs text-slate-400 dark:border-slate-800">
+                <p className="rounded-xl border border-dashed border-line/[0.1] p-3 text-center text-xs text-faint">
                   Nothing here
                 </p>
               )}

@@ -23,9 +23,9 @@ const FREQ_LABEL: Record<Freq, string> = {
   YEARLY: "Yearly",
 };
 
-const inputClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none " +
-  "focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900";
+const inputClass = "field-input";
+
+
 
 function parseRecurrence(rule: string | null): { freq: Freq; until: string } {
   if (!rule) return { freq: "none", until: "" };
@@ -135,7 +135,7 @@ export function EventModal({
   return (
     <Modal title={editing ? "Edit event" : "New event"} onClose={onClose}>
       {editing && isLoading ? (
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : (
         <>
           {occurrence?.is_recurring && eventId !== null && (
@@ -147,7 +147,7 @@ export function EventModal({
           )}
           <form onSubmit={submit} className="space-y-3">
           {error && (
-            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300">
+            <p role="alert" className="rounded-md border border-rose-500/25 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-300">
               {error}
             </p>
           )}
@@ -159,7 +159,7 @@ export function EventModal({
             onChange={(e) => setTitle(e.target.value)}
           />
 
-          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-muted">
             <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
             All day
           </label>
@@ -168,22 +168,22 @@ export function EventModal({
             {allDay ? (
               <>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-slate-500">Start</span>
+                  <span className="mb-1 block text-xs text-muted">Start</span>
                   <input type="date" className={inputClass} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-slate-500">End</span>
+                  <span className="mb-1 block text-xs text-muted">End</span>
                   <input type="date" className={inputClass} value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </label>
               </>
             ) : (
               <>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-slate-500">Start</span>
+                  <span className="mb-1 block text-xs text-muted">Start</span>
                   <input type="datetime-local" className={inputClass} value={start} onChange={(e) => setStart(e.target.value)} />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs text-slate-500">End</span>
+                  <span className="mb-1 block text-xs text-muted">End</span>
                   <input type="datetime-local" className={inputClass} value={end} onChange={(e) => setEnd(e.target.value)} />
                 </label>
               </>
@@ -192,7 +192,7 @@ export function EventModal({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1 block text-xs text-slate-500">Repeat</span>
+              <span className="mb-1 block text-xs text-muted">Repeat</span>
               <select className={inputClass} value={freq} onChange={(e) => setFreq(e.target.value as Freq)}>
                 {FREQS.map((value) => (
                   <option key={value} value={value}>
@@ -203,7 +203,7 @@ export function EventModal({
             </label>
             {freq !== "none" && (
               <label className="block">
-                <span className="mb-1 block text-xs text-slate-500">Until (optional)</span>
+                <span className="mb-1 block text-xs text-muted">Until (optional)</span>
                 <input type="date" className={inputClass} value={until} onChange={(e) => setUntil(e.target.value)} />
               </label>
             )}
@@ -227,7 +227,7 @@ export function EventModal({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="rounded-md btn-primary btn-md disabled:opacity-50"
             >
               {pending ? "Saving…" : editing ? "Save" : "Create"}
             </button>
@@ -235,7 +235,7 @@ export function EventModal({
               <button
                 type="button"
                 onClick={() => remove.mutate(eventId, { onSuccess: onClose })}
-                className="text-xs font-medium text-rose-600 hover:underline"
+                className="text-xs font-medium text-rose-400 hover:underline"
               >
                 Delete event
               </button>
@@ -273,14 +273,14 @@ function OccurrenceOverridePanel({
   });
 
   return (
-    <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/40">
-      <p className="mb-2 font-medium text-amber-900 dark:text-amber-200">
+    <div className="mb-3 rounded-md border border-amber-500/25 bg-amber-500/10 p-3 text-sm">
+      <p className="mb-2 font-medium text-amber-300">
         This occurrence · {label}
         {occurrence.overridden && " (changed)"}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
-          <span className="mb-1 block text-xs text-amber-800 dark:text-amber-300">Start</span>
+          <span className="mb-1 block text-xs text-amber-300/80">Start</span>
           <input
             type="datetime-local"
             className={inputClass}
@@ -289,7 +289,7 @@ function OccurrenceOverridePanel({
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs text-amber-800 dark:text-amber-300">End</span>
+          <span className="mb-1 block text-xs text-amber-300/80">End</span>
           <input
             type="datetime-local"
             className={inputClass}
@@ -315,7 +315,7 @@ function OccurrenceOverridePanel({
               { onSuccess: onDone },
             )
           }
-          className="rounded bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          className="btn-primary btn-sm"
         >
           Reschedule this one
         </button>
@@ -328,7 +328,7 @@ function OccurrenceOverridePanel({
               { onSuccess: onDone },
             )
           }
-          className="text-xs font-medium text-rose-600 hover:underline"
+          className="text-xs font-medium text-rose-400 hover:underline"
         >
           Skip this occurrence
         </button>
@@ -337,7 +337,7 @@ function OccurrenceOverridePanel({
             type="button"
             disabled={removeOverride.isPending}
             onClick={() => removeOverride.mutate(thisOverride.id, { onSuccess: onDone })}
-            className="text-xs font-medium text-slate-500 hover:underline"
+            className="text-xs font-medium text-muted hover:underline"
           >
             Restore to series
           </button>

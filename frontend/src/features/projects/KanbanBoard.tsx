@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
+import { Icon } from "@/components/icons";
 import * as pj from "@/features/projects/api";
 import type { Board, BoardColumn } from "@/features/projects/api";
 import { TaskCard } from "@/features/projects/TaskCard";
@@ -33,7 +34,7 @@ function AddTaskInline({ projectId, columnId }: { projectId: number; columnId: n
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         placeholder="+ Add task"
-        className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-sm outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 dark:hover:border-slate-700"
+        className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-sm outline-none placeholder:text-faint hover:border-line/[0.14] focus:border-brand/60 "
       />
     </form>
   );
@@ -55,36 +56,38 @@ function Column({
   const removeCol = useBoardMutation(() => pj.deleteColumn(column.id));
 
   return (
-    <div className="w-72 shrink-0">
-      <div className="mb-2 flex items-center gap-2 px-1 text-sm font-medium">
+    <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-line/[0.06] bg-line/[0.02] p-2">
+      <div className="mb-2 flex items-center gap-2 px-1.5 py-1 text-[13px] font-semibold text-content">
         <span>{column.name}</span>
-        <span className="text-slate-400">{column.tasks.length}</span>
-        <span className="ml-auto flex items-center gap-1 text-slate-300">
+        <span className="rounded-md bg-line/[0.06] px-1.5 text-xs text-faint">
+          {column.tasks.length}
+        </span>
+        <span className="ml-auto flex items-center gap-0.5 text-faint">
           <button
             type="button"
             disabled={index === 0}
             onClick={() => moveCol.mutate(index - 1)}
-            className="hover:text-slate-600 disabled:opacity-30"
+            className="grid h-6 w-6 place-items-center rounded-md hover:bg-line/[0.06] hover:text-content disabled:opacity-30"
             aria-label="Move column left"
           >
-            ◀
+            <Icon name="chevronLeft" size={14} />
           </button>
           <button
             type="button"
             disabled={index === total - 1}
             onClick={() => moveCol.mutate(index + 1)}
-            className="hover:text-slate-600 disabled:opacity-30"
+            className="grid h-6 w-6 place-items-center rounded-md hover:bg-line/[0.06] hover:text-content disabled:opacity-30"
             aria-label="Move column right"
           >
-            ▶
+            <Icon name="chevronRight" size={14} />
           </button>
           <button
             type="button"
             onClick={() => removeCol.mutate(undefined)}
-            className="hover:text-rose-500"
+            className="grid h-6 w-6 place-items-center rounded-md hover:bg-rose-500/10 hover:text-rose-400"
             aria-label="Delete column"
           >
-            ✕
+            <Icon name="trash" size={13} />
           </button>
         </span>
       </div>
@@ -92,10 +95,7 @@ function Column({
         items={column.tasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div
-          ref={setNodeRef}
-          className="min-h-16 space-y-2 rounded-lg bg-slate-100/70 p-2 dark:bg-slate-900/40"
-        >
+        <div ref={setNodeRef} className="min-h-24 space-y-2 rounded-xl p-1">
           {column.tasks.map((task) => (
             <TaskCard key={task.id} task={task} onOpen={onOpenTask} />
           ))}
@@ -116,7 +116,7 @@ function AddColumn({ projectId }: { projectId: number }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-9 shrink-0 rounded-lg border border-dashed border-slate-300 px-3 text-sm text-slate-500 hover:border-slate-400 dark:border-slate-700"
+        className="h-9 shrink-0 rounded-lg border border-dashed border-line/[0.14] px-3 text-sm text-muted hover:border-brand/40 "
       >
         + Column
       </button>
@@ -144,7 +144,7 @@ function AddColumn({ projectId }: { projectId: number }) {
         onBlur={() => !name && setOpen(false)}
         onChange={(event) => setName(event.target.value)}
         placeholder="Column name"
-        className="w-40 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+        className="w-40 rounded-md border border-line/[0.14] bg-surface px-2 py-1.5 text-sm outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
       />
     </form>
   );

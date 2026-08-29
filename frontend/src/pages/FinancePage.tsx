@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 
+import { Icon } from "@/components/icons";
 import { Modal } from "@/components/Modal";
+import { Button, Card, CardHeader, Input, PageHeader, Select, StatTile } from "@/components/ui";
 import * as fin from "@/features/finance/api";
 import type { TransactionKind } from "@/features/finance/api";
-import { pushToast } from "@/features/notifications/toasts";
 import { BudgetPanel } from "@/features/finance/BudgetPanel";
-import { TransactionForm } from "@/features/finance/TransactionForm";
 import { currentMonth, formatCents } from "@/features/finance/money";
 import {
   useAccounts,
@@ -14,10 +14,10 @@ import {
   useSummary,
   useTransactions,
 } from "@/features/finance/queries";
+import { TransactionForm } from "@/features/finance/TransactionForm";
+import { pushToast } from "@/features/notifications/toasts";
 
-function pct(value: number): string {
-  return `${Math.round(value * 100)}%`;
-}
+const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export default function FinancePage() {
   const [month, setMonth] = useState(currentMonth());
@@ -59,91 +59,94 @@ export default function FinancePage() {
   const categoryName = (id: number | null): string =>
     id === null ? "—" : (categories.find((c) => c.id === id)?.name ?? "—");
 
-  const cards = [
-    { label: "Income", value: summary ? formatCents(summary.income_cents) : "–" },
-    { label: "Expenses", value: summary ? formatCents(summary.expense_cents) : "–" },
-    { label: "Net", value: summary ? formatCents(summary.net_cents) : "–" },
-    { label: "Savings rate", value: summary ? pct(summary.savings_rate) : "–" },
-  ];
-
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold">Finance</h2>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="rounded-md border border-slate-300 px-2 py-1 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) importCsv.mutate(file);
-              e.target.value = "";
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            Import CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => void downloadReport()}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            Report PDF
-          </button>
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            disabled={accounts.length === 0}
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            + Transaction
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Finance"
+        subtitle={
+          <span className="inline-flex items-center gap-2">
+            Money in, money out —
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="field-input h-7 w-[8.5rem] px-2 py-0 text-xs"
+            />
+          </span>
+        }
+        actions={
+          <>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) importCsv.mutate(file);
+                e.target.value = "";
+              }}
+            />
+            <Button variant="ghost" icon="download" onClick={() => fileInput.current?.click()}>
+              Import CSV
+            </Button>
+            <Button variant="secondary" icon="download" onClick={() => void downloadReport()}>
+              Report PDF
+            </Button>
+            <Button
+              variant="primary"
+              icon="plus"
+              disabled={accounts.length === 0}
+              onClick={() => setAdding(true)}
+            >
+              Transaction
+            </Button>
+          </>
+        }
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {cards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="text-xl font-bold tabular-nums">{card.value}</div>
-            <div className="text-xs text-slate-500">{card.label}</div>
-          </div>
-        ))}
+        <StatTile label="Income" value={summary ? formatCents(summary.income_cents) : "–"} icon="wallet" />
+        <StatTile
+          label="Expenses"
+          value={summary ? formatCents(summary.expense_cents) : "–"}
+          icon="arrowRight"
+          tone="rose"
+        />
+        <StatTile
+          label="Net"
+          value={summary ? formatCents(summary.net_cents) : "–"}
+          icon="chart"
+          tone="violet"
+        />
+        <StatTile
+          label="Savings rate"
+          value={summary ? pct(summary.savings_rate) : "–"}
+          icon="target"
+          tone="amber"
+        />
       </div>
 
       {importCsv.data && (
-        <p className="mb-4 text-sm text-slate-500">
+        <p className="mb-4 text-sm text-muted">
           Imported {importCsv.data.imported} row{importCsv.data.imported === 1 ? "" : "s"}
           {importCsv.data.errors.length > 0 && `, ${importCsv.data.errors.length} skipped`}.
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <BudgetPanel month={month} byCategory={summary?.by_category ?? []} />
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="mb-3 text-sm font-medium text-slate-500">Accounts</h3>
+        <Card>
+          <CardHeader title="Accounts" />
           <ul className="space-y-2 text-sm">
             {accounts.map((account) => (
-              <li key={account.id} className="flex justify-between">
-                <span>{account.name}</span>
-                <span className="tabular-nums font-medium">
+              <li
+                key={account.id}
+                className="flex justify-between rounded-lg px-2 py-1.5 hover:bg-line/[0.04]"
+              >
+                <span className="text-content">{account.name}</span>
+                <span className="font-semibold tabular-nums text-content">
                   {formatCents(account.balance_cents, account.currency)}
                 </span>
               </li>
@@ -161,74 +164,70 @@ export default function FinancePage() {
               }
             }}
           >
-            <input
-              name="name"
-              placeholder="+ account"
-              className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-slate-100 px-3 py-1 text-sm font-medium hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
-            >
+            <Input name="name" placeholder="New account name" className="flex-1" />
+            <Button type="submit" variant="secondary" icon="plus" size="sm">
               Add
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
       </div>
 
       <div className="mt-6">
-        <div className="mb-2 flex items-center gap-2">
-          <h3 className="text-sm font-medium text-slate-500">Transactions</h3>
-          <select
+        <div className="mb-3 flex items-center gap-3">
+          <h3 className="label-eyebrow">Transactions</h3>
+          <Select
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value as TransactionKind | "")}
-            className="rounded border border-slate-300 px-1.5 py-0.5 text-xs outline-none dark:border-slate-700 dark:bg-slate-900"
+            className="h-7 w-28 py-0 text-xs"
           >
             <option value="">All</option>
             <option value="expense">Expenses</option>
             <option value="income">Income</option>
-          </select>
+          </Select>
         </div>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <div className="surface-card overflow-x-auto p-0">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
-              <tr>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Description</th>
-                <th className="px-3 py-2">Category</th>
-                <th className="px-3 py-2 text-right">Amount</th>
-                <th className="px-3 py-2" />
+            <thead>
+              <tr className="border-b border-line/[0.08] text-xs uppercase tracking-wide text-faint">
+                <th className="px-4 py-3 font-semibold">Date</th>
+                <th className="px-4 py-3 font-semibold">Description</th>
+                <th className="px-4 py-3 font-semibold">Category</th>
+                <th className="px-4 py-3 text-right font-semibold">Amount</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {transactions.map((txn) => (
-                <tr key={txn.id} className="border-t border-slate-100 dark:border-slate-800">
-                  <td className="px-3 py-2 tabular-nums text-slate-500">{txn.occurred_on}</td>
-                  <td className="px-3 py-2">{txn.description ?? "—"}</td>
-                  <td className="px-3 py-2 text-slate-500">{categoryName(txn.category_id)}</td>
+                <tr
+                  key={txn.id}
+                  className="group border-b border-line/[0.05] last:border-0 hover:bg-line/[0.03]"
+                >
+                  <td className="px-4 py-2.5 tabular-nums text-faint">{txn.occurred_on}</td>
+                  <td className="px-4 py-2.5 text-content">{txn.description ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-muted">{categoryName(txn.category_id)}</td>
                   <td
-                    className={`px-3 py-2 text-right tabular-nums ${
-                      txn.kind === "income" ? "text-emerald-600" : ""
+                    className={`px-4 py-2.5 text-right font-semibold tabular-nums ${
+                      txn.kind === "income" ? "text-brand-hi" : "text-content"
                     }`}
                   >
                     {txn.kind === "income" ? "+" : "−"}
                     {formatCents(txn.amount_cents)}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2.5 text-right">
                     <button
                       type="button"
                       onClick={() => removeTxn.mutate(txn.id)}
-                      className="text-slate-300 hover:text-rose-500"
+                      className="text-faint opacity-0 transition hover:text-rose-400 group-hover:opacity-100"
                       aria-label="Delete transaction"
                     >
-                      ✕
+                      <Icon name="trash" size={15} />
                     </button>
                   </td>
                 </tr>
               ))}
               {transactions.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-sm text-slate-400">
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-faint">
                     No transactions this month.
                   </td>
                 </tr>

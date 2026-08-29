@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { Button, LoadingRow, PageHeader, SegmentedControl, StatTile } from "@/components/ui";
 import { fetchExport } from "@/features/analytics/api";
 import {
   Bars,
@@ -107,55 +108,43 @@ export default function AnalyticsPage() {
       }))
     : [];
 
+  const TILE_ICON = ["target", "clock", "flag", "book"] as const;
+
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Analytics</h2>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-slate-300 text-sm dark:border-slate-700">
-            {RANGES.map((range) => (
-              <button
-                key={range.days}
-                type="button"
-                onClick={() => setDays(range.days)}
-                className={`px-3 py-1.5 ${
-                  days === range.days ? "bg-slate-100 font-medium dark:bg-slate-800" : "text-slate-500"
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => void download("csv")}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => void download("pdf")}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-          >
-            PDF
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Analytics"
+        subtitle="Cross-module trends over your chosen window."
+        actions={
+          <>
+            <SegmentedControl
+              value={String(days)}
+              onChange={(v) => setDays(Number(v))}
+              options={RANGES.map((r) => ({ value: String(r.days), label: r.label }))}
+            />
+            <Button variant="secondary" icon="download" onClick={() => void download("csv")}>
+              CSV
+            </Button>
+            <Button variant="secondary" icon="download" onClick={() => void download("pdf")}>
+              PDF
+            </Button>
+          </>
+        }
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {tiles.map((tile) => (
-          <div
+        {tiles.map((tile, i) => (
+          <StatTile
             key={tile.label}
-            className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-          >
-            <div className="text-xl font-bold tabular-nums">{tile.value}</div>
-            <div className="text-xs text-slate-500">{tile.label}</div>
-          </div>
+            label={tile.label}
+            value={tile.value}
+            icon={TILE_ICON[i]}
+            tone={(["brand", "violet", "amber", "rose"] as const)[i]}
+          />
         ))}
       </div>
 
-      {isLoading && <p className="text-sm text-slate-500">Loading…</p>}
+      {isLoading && <LoadingRow />}
 
       {data && (
         <>

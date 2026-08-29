@@ -4,13 +4,12 @@ import type { ApplicationInput, ApplicationStatus } from "@/features/jobTracker/
 import { STATUS_META, STATUS_ORDER } from "@/features/jobTracker/statusMeta";
 
 const inputClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none " +
-  "focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900";
+"field-input";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
   );
@@ -153,7 +152,7 @@ export function ApplicationForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        className="w-full rounded-md btn-primary btn-md disabled:opacity-50"
       >
         {pending ? "Saving…" : submitLabel}
       </button>

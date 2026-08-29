@@ -50,7 +50,7 @@ export function ApplicationDrawer({
       role="presentation"
     >
       <aside
-        className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl dark:bg-slate-900"
+        className="h-full w-full max-w-md overflow-y-auto bg-surface p-6 shadow-xl "
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -59,20 +59,20 @@ export function ApplicationDrawer({
         <div className="mb-4 flex items-start justify-between">
           <div>
             <h3 className="text-lg font-semibold">{application.role}</h3>
-            <p className="text-sm text-slate-500">{application.company.name}</p>
+            <p className="text-sm text-muted">{application.company.name}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="text-faint hover:text-content"
           >
             ✕
           </button>
         </div>
 
         <div className="mb-5">
-          <p className="mb-2 text-xs font-medium text-slate-500">Status</p>
+          <p className="mb-2 text-xs font-medium text-muted">Status</p>
           <div className="flex flex-wrap gap-1.5">
             {STATUS_ORDER.map((status) => (
               <button
@@ -82,7 +82,7 @@ export function ApplicationDrawer({
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                   application.status === status
                     ? STATUS_META[status].badge
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+                    : "bg-line/[0.08] text-muted hover:bg-line/[0.12] "
                 }`}
               >
                 {STATUS_META[status].label}
@@ -125,7 +125,7 @@ export function ApplicationDrawer({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="mt-2 rounded-md border border-line/[0.14] px-3 py-1.5 text-xs font-medium hover:bg-line/[0.08] "
             >
               Edit details
             </button>
@@ -133,12 +133,12 @@ export function ApplicationDrawer({
         )}
 
         <div className="mt-6">
-          <p className="mb-2 text-xs font-medium text-slate-500">Interviews</p>
+          <p className="mb-2 text-xs font-medium text-muted">Interviews</p>
           <ul className="space-y-1.5">
             {application.interviews.map((interview) => (
               <li
                 key={interview.id}
-                className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-1.5 text-sm dark:bg-slate-800"
+                className="flex items-center justify-between rounded-md bg-surface-2 px-3 py-1.5 text-sm "
               >
                 <span>
                   {interview.kind}
@@ -148,14 +148,14 @@ export function ApplicationDrawer({
                   type="button"
                   onClick={() => deleteInterview.mutate(interview.id)}
                   aria-label="Remove interview"
-                  className="text-slate-400 hover:text-rose-500"
+                  className="text-faint hover:text-rose-500"
                 >
                   ✕
                 </button>
               </li>
             ))}
             {application.interviews.length === 0 && (
-              <li className="text-sm text-slate-400">None logged.</li>
+              <li className="text-sm text-faint">None logged.</li>
             )}
           </ul>
           <form onSubmit={submitInterview} className="mt-2 flex gap-2">
@@ -163,12 +163,12 @@ export function ApplicationDrawer({
               value={interviewKind}
               onChange={(event) => setInterviewKind(event.target.value)}
               placeholder="phone, technical, onsite…"
-              className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+              className="flex-1 rounded-md border border-line/[0.14] bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
             />
             <button
               type="submit"
               disabled={addInterview.isPending}
-              className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="rounded-md btn-primary btn-md disabled:opacity-50"
             >
               Add
             </button>
@@ -190,7 +190,7 @@ export function ApplicationDrawer({
 function Detail({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-slate-500">{label}</dt>
+      <dt className="text-muted">{label}</dt>
       <dd className="text-right">{value ?? "–"}</dd>
     </div>
   );

@@ -12,14 +12,14 @@ function Bar({ spent, budget }: { spent: number; budget: number | null }) {
   const over = budget != null && spent > budget;
 
   return (
-    <div className="relative h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+    <div className="relative h-2 w-full rounded-full bg-line/[0.08]">
       <div
-        className={`absolute inset-y-0 left-0 rounded-full ${over ? "bg-rose-500" : "bg-emerald-500"}`}
+        className={`absolute inset-y-0 left-0 rounded-full ${over ? "bg-rose-500" : "bg-brand"}`}
         style={{ width: `${spentPct}%` }}
       />
       {budgetPct != null && (
         <div
-          className="absolute inset-y-[-2px] w-0.5 bg-slate-500"
+          className="absolute inset-y-[-2px] w-0.5 bg-surface-20"
           style={{ left: `${budgetPct}%` }}
         />
       )}
@@ -61,11 +61,11 @@ export function BudgetPanel({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <h3 className="mb-3 text-sm font-medium text-slate-500">Spending vs budget</h3>
+    <div className="surface-card">
+      <h3 className="mb-3 text-sm font-medium text-muted">Spending vs budget</h3>
 
       {rows.length === 0 && (
-        <p className="text-sm text-slate-400">No expense categories yet.</p>
+        <p className="text-sm text-faint">No expense categories yet.</p>
       )}
 
       <ul className="space-y-3">
@@ -79,7 +79,7 @@ export function BudgetPanel({
                 />
                 {category.name}
               </span>
-              <span className={over ? "font-medium text-rose-600" : "text-slate-500"}>
+              <span className={over ? "font-medium text-rose-600" : "text-muted"}>
                 {formatCents(spent)}
                 {budget != null && ` / ${formatCents(budget)}`}
               </span>
@@ -90,7 +90,7 @@ export function BudgetPanel({
               onChange={(e) => setDrafts((d) => ({ ...d, [category.id]: e.target.value }))}
               onBlur={() => saveBudget(category.id)}
               placeholder="set budget"
-              className="mt-1 w-28 rounded border border-slate-200 px-2 py-0.5 text-xs outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+              className="mt-1 w-28 rounded border border-line/[0.08] px-2 py-0.5 text-xs outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
             />
           </li>
         ))}
@@ -113,11 +113,11 @@ export function BudgetPanel({
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
           placeholder="+ expense category"
-          className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900"
+          className="flex-1 rounded-md border border-line/[0.14] px-2 py-1 text-sm outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/15"
         />
         <button
           type="submit"
-          className="rounded-md bg-slate-100 px-3 py-1 text-sm font-medium hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+          className="rounded-md bg-line/[0.08] px-3 py-1 text-sm font-medium hover:bg-line/[0.12] "
         >
           Add
         </button>

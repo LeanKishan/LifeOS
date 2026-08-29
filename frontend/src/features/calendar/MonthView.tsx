@@ -1,5 +1,6 @@
 import type { Occurrence } from "@/features/calendar/api";
 import { fmtTime, monthMatrix, sameDay } from "@/features/calendar/dateUtils";
+import { cn } from "@/lib/cn";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -18,10 +19,10 @@ export function MonthView({
   const today = new Date();
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-      <div className="grid grid-cols-7 bg-slate-50 text-xs font-medium text-slate-500 dark:bg-slate-900">
+    <div className="surface-card overflow-hidden p-0">
+      <div className="grid grid-cols-7 border-b border-line/[0.08] bg-surface-2 text-[11px] font-semibold uppercase tracking-wide text-faint">
         {WEEKDAYS.map((label) => (
-          <div key={label} className="px-2 py-1.5 text-center">
+          <div key={label} className="px-2 py-2 text-center">
             {label}
           </div>
         ))}
@@ -29,51 +30,51 @@ export function MonthView({
       <div className="grid grid-cols-7">
         {days.map((day) => {
           const inMonth = day.getMonth() === anchor.getMonth();
-          const dayOccurrences = occurrences
-            .filter((occurrence) => sameDay(new Date(occurrence.start_at), day))
+          const dayOcc = occurrences
+            .filter((o) => sameDay(new Date(o.start_at), day))
             .sort((a, b) => a.start_at.localeCompare(b.start_at));
 
           return (
             <div
               key={day.toISOString()}
-              className={`min-h-24 border-b border-r border-slate-100 p-1 dark:border-slate-800/70 ${
-                inMonth ? "" : "bg-slate-50/60 dark:bg-slate-950"
-              }`}
+              className={cn(
+                "min-h-[6.5rem] border-b border-r border-line/[0.05] p-1.5",
+                !inMonth && "bg-line/[0.02]",
+              )}
             >
               <button
                 type="button"
                 onClick={() => onPickDay(day)}
-                className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+                className={cn(
+                  "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs transition",
                   sameDay(day, today)
-                    ? "bg-emerald-600 font-semibold text-white"
+                    ? "bg-brand font-bold text-[#04140d]"
                     : inMonth
-                      ? "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      : "text-slate-400"
-                }`}
+                      ? "text-content hover:bg-line/[0.08]"
+                      : "text-faint",
+                )}
               >
                 {day.getDate()}
               </button>
-              <div className="space-y-0.5">
-                {dayOccurrences.slice(0, 3).map((occurrence, index) => (
+              <div className="space-y-1">
+                {dayOcc.slice(0, 3).map((o, i) => (
                   <button
-                    key={`${occurrence.event_id}-${index}`}
+                    key={`${o.event_id}-${i}`}
                     type="button"
-                    onClick={() => onOpenOccurrence(occurrence)}
-                    className="block w-full truncate rounded bg-emerald-100 px-1 py-0.5 text-left text-[11px] text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300"
+                    onClick={() => onOpenOccurrence(o)}
+                    className="block w-full truncate rounded-md border border-brand/20 bg-brand/10 px-1.5 py-0.5 text-left text-[11px] text-brand-hi transition hover:bg-brand/20"
                   >
-                    {!occurrence.all_day && (
-                      <span className="tabular-nums">{fmtTime(new Date(occurrence.start_at))} </span>
+                    {!o.all_day && (
+                      <span className="tabular-nums opacity-70">
+                        {fmtTime(new Date(o.start_at))}{" "}
+                      </span>
                     )}
-                    {occurrence.title}
-                    {occurrence.overridden && (
-                      <span title="This occurrence was changed"> ✎</span>
-                    )}
+                    {o.title}
+                    {o.overridden && <span title="Changed"> ✎</span>}
                   </button>
                 ))}
-                {dayOccurrences.length > 3 && (
-                  <div className="px-1 text-[10px] text-slate-400">
-                    +{dayOccurrences.length - 3} more
-                  </div>
+                {dayOcc.length > 3 && (
+                  <div className="px-1 text-[10px] text-faint">+{dayOcc.length - 3} more</div>
                 )}
               </div>
             </div>

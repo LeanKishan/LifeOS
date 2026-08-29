@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 
+import { Icon } from "@/components/icons";
+import { Button, LoadingRow, PageHeader, SegmentedControl } from "@/components/ui";
 import type { Occurrence } from "@/features/calendar/api";
-import { EventModal } from "@/features/calendar/EventModal";
-import { MonthView } from "@/features/calendar/MonthView";
-import { WeekView } from "@/features/calendar/WeekView";
 import {
   addDays,
   addMonths,
@@ -12,7 +11,10 @@ import {
   monthMatrix,
   startOfWeek,
 } from "@/features/calendar/dateUtils";
+import { EventModal } from "@/features/calendar/EventModal";
+import { MonthView } from "@/features/calendar/MonthView";
 import { useOccurrences } from "@/features/calendar/queries";
+import { WeekView } from "@/features/calendar/WeekView";
 
 type View = "month" | "week";
 type ModalState =
@@ -38,71 +40,58 @@ export default function CalendarPage() {
     range.to.toISOString(),
   );
 
-  function shift(direction: -1 | 1): void {
-    setAnchor((current) =>
-      view === "month" ? addMonths(current, direction) : addDays(current, direction * 7),
-    );
-  }
+  const shift = (d: -1 | 1) =>
+    setAnchor((c) => (view === "month" ? addMonths(c, d) : addDays(c, d * 7)));
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold">
-            {view === "month" ? fmtMonthYear(anchor) : fmtWeekRange(anchor)}
-          </h2>
-          <div className="flex items-center gap-1 text-sm">
+      <PageHeader
+        title={view === "month" ? fmtMonthYear(anchor) : fmtWeekRange(anchor)}
+        subtitle={
+          <span className="inline-flex items-center gap-1">
             <button
               type="button"
               onClick={() => shift(-1)}
-              className="rounded px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="grid h-7 w-7 place-items-center rounded-lg text-faint transition hover:bg-line/[0.06] hover:text-content"
               aria-label="Previous"
             >
-              ◀
+              <Icon name="chevronLeft" size={16} />
             </button>
             <button
               type="button"
               onClick={() => setAnchor(new Date())}
-              className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="rounded-lg border border-line/[0.12] px-2.5 py-1 text-xs font-medium text-muted transition hover:border-brand/40 hover:text-content"
             >
               Today
             </button>
             <button
               type="button"
               onClick={() => shift(1)}
-              className="rounded px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="grid h-7 w-7 place-items-center rounded-lg text-faint transition hover:bg-line/[0.06] hover:text-content"
               aria-label="Next"
             >
-              ▶
+              <Icon name="chevronRight" size={16} />
             </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-md border border-slate-300 text-sm dark:border-slate-700">
-            {(["month", "week"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setView(value)}
-                className={`px-3 py-1.5 capitalize ${
-                  view === value ? "bg-slate-100 font-medium dark:bg-slate-800" : "text-slate-500"
-                }`}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setModal({ eventId: null })}
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
-          >
-            + Event
-          </button>
-        </div>
-      </div>
+          </span>
+        }
+        actions={
+          <>
+            <SegmentedControl
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "month", label: "month", icon: "calendar" },
+                { value: "week", label: "week", icon: "layers" },
+              ]}
+            />
+            <Button variant="primary" icon="plus" onClick={() => setModal({ eventId: null })}>
+              Event
+            </Button>
+          </>
+        }
+      />
 
-      {isLoading && <p className="text-sm text-slate-500">Loading…</p>}
+      {isLoading && <LoadingRow />}
 
       {view === "month" ? (
         <MonthView

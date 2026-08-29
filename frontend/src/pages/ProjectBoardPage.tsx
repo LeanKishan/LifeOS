@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { Icon } from "@/components/icons";
+import { Button, LoadingRow, PageHeader } from "@/components/ui";
 import * as pj from "@/features/projects/api";
 import { KanbanBoard } from "@/features/projects/KanbanBoard";
 import { TaskModal } from "@/features/projects/TaskModal";
@@ -16,26 +18,34 @@ export default function ProjectBoardPage() {
     pj.updateProject(projectId, { archived }),
   );
 
-  if (isLoading) return <p className="text-sm text-slate-500">Loading board…</p>;
-  if (isError || !board) return <p className="text-sm text-rose-600">Project not found.</p>;
+  if (isLoading) return <LoadingRow label="Loading board…" />;
+  if (isError || !board)
+    return <p className="py-10 text-sm text-rose-400">Project not found.</p>;
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link to="/projects" className="text-xs text-slate-400 hover:underline">
-            ← Projects
-          </Link>
-          <h2 className="text-xl font-semibold">{board.name}</h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => archive.mutate(!board.archived)}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
-        >
-          {board.archived ? "Unarchive" : "Archive"}
-        </button>
-      </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Link
+              to="/projects"
+              className="grid h-7 w-7 place-items-center rounded-lg text-faint transition hover:bg-line/[0.06] hover:text-content"
+            >
+              <Icon name="chevronLeft" size={18} />
+            </Link>
+            {board.name}
+          </span>
+        }
+        actions={
+          <Button
+            variant="secondary"
+            icon="inbox"
+            onClick={() => archive.mutate(!board.archived)}
+          >
+            {board.archived ? "Unarchive" : "Archive"}
+          </Button>
+        }
+      />
 
       <KanbanBoard board={board} onOpenTask={setOpenTaskId} />
 

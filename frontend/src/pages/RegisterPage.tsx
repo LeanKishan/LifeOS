@@ -32,7 +32,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthShell title="Create your account" error={error}>
+    <AuthShell
+      title="Create your account"
+      subtitle="Free, and takes a few seconds."
+      error={error}
+    >
       <form onSubmit={onSubmit} className="space-y-4">
         <Field
           label="Full name"
@@ -52,9 +56,9 @@ export default function RegisterPage() {
         />
         <SubmitButton busy={busy}>Create account</SubmitButton>
       </form>
-      <p className="mt-4 text-sm text-slate-500">
+      <p className="mt-5 text-sm text-muted">
         Already have an account?{" "}
-        <Link to="/login" className="text-emerald-600 hover:underline">
+        <Link to="/login" className="font-semibold text-brand-hi hover:underline">
           Log in
         </Link>
       </p>

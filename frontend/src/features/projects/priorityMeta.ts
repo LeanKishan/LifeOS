@@ -5,18 +5,18 @@ export const PRIORITY_ORDER: TaskPriority[] = ["low", "medium", "high", "urgent"
 export const PRIORITY_META: Record<TaskPriority, { label: string; pill: string }> = {
   low: {
     label: "Low",
-    pill: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+    pill: "pill bg-line/[0.06] text-faint ring-line/10",
   },
   medium: {
     label: "Medium",
-    pill: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+    pill: "pill bg-blue-500/12 text-blue-300 ring-blue-500/20",
   },
   high: {
     label: "High",
-    pill: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+    pill: "pill bg-amber-500/12 text-amber-300 ring-amber-500/20",
   },
   urgent: {
     label: "Urgent",
-    pill: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
+    pill: "pill bg-rose-500/12 text-rose-300 ring-rose-500/20",
   },
 };
