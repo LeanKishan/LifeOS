@@ -163,7 +163,9 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [x] Frontend: chat panel with tool-call badges, suggestion chips, 503 notice
 - [x] Tests: 7 (Anthropic client mocked) — loop, tool round-trip, give-up,
       real task creation, tool errors, endpoint 200/503
-- [ ] Streaming responses → polish
+- [x] Streaming responses (M17) — `run_chat_stream` generator + SSE
+      `POST /api/coach/chat/stream` ({type: delta|tool|done}); web chat renders
+      token-by-token with a caret. Non-streaming endpoint kept. ADR-0027
 - [ ] Per-user rate limit / spend cap on the endpoint → with the deploy
 
 ## M11 — Analytics

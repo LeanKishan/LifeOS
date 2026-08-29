@@ -568,3 +568,32 @@ rule or `dtstart` changes; the original datetime is stable and is exactly what
 (reschedule / skip / restore-to-series); the series form is unchanged. Occurrences
 carry `occurrence_start` + `overridden` so the month/week views can mark a changed
 instance.
+
+## ADR-0027 — Assistant streaming: SSE + a generator over the same loop
+
+**Decision.** `run_chat_stream` is the M10 agentic loop turned into a generator:
+each turn calls `client.messages.stream()` instead of `.create()`, forwards
+`text_stream` chunks as `{"type": "delta"}`, emits `{"type": "tool"}` before each
+tool runs, and ends with `{"type": "done", "tool_calls": [...]}`. `POST
+/api/coach/chat/stream` wraps it in a `StreamingResponse` with
+`media_type="text/event-stream"`; `ensure_configured()` raises first so a missing
+key is still a clean `503` before any bytes are sent. The non-streaming
+`POST /coach/chat` stays — the mobile app and the tests use it, and it's the 401
+fallback.
+
+**Why SSE, not the WebSocket.** The `/api/ws` channel is a fan-out broadcast
+keyed by user; a chat stream is a one-shot response to one request. SSE is a
+plain HTTP response the browser reads with `fetch` + `ReadableStream` — no
+second connection, no message framing, and it dies with the request.
+
+**Why two code paths, not one.** `run_chat` delegating to `run_chat_stream` would
+be DRY but forces `.stream()` on every caller (and every test's fake). Keeping
+`run_chat` on `.create()` leaves the simple path simple and the ~25 loop lines
+duplicated; the shared `_base_params()` / `execute_tool` / `GAVE_UP` keep them
+from drifting. ADR-0020's point stands — the loop is the thing to be able to
+explain, and now there are two short ones.
+
+**Frontend.** `sendChatStream` uses `fetch` (axios doesn't surface the body
+stream in browsers); a 401 falls back once to the axios call so the refresh
+interceptor can run. The chat renders deltas into a trailing bubble with a
+blinking caret; tool chips appear as their events arrive.
