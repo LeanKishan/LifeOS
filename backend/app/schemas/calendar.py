@@ -93,9 +93,53 @@ class OccurrenceRead(_FromORM):
     location: str | None
     all_day: bool
     is_recurring: bool
+    # The rule-generated start this instance came from (its RECURRENCE-ID);
+    # equals start_at for a non-overridden instance. Address overrides by it.
+    occurrence_start: datetime
+    overridden: bool
     start_at: datetime
     end_at: datetime
 
-    @field_serializer("start_at", "end_at")
+    @field_serializer("start_at", "end_at", "occurrence_start")
     def _serialize_dt(self, value: datetime) -> str:
         return _as_utc_iso(value)
+
+
+# --------------------------------------------------------------------------- #
+# Per-occurrence overrides
+# --------------------------------------------------------------------------- #
+class EventOverrideCreate(BaseModel):
+    occurrence_start: datetime
+    canceled: bool = False
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=300)
+    description: str | None = None
+    location: str | None = Field(default=None, max_length=300)
+
+    @model_validator(mode="after")
+    def _end_after_start(self) -> EventOverrideCreate:
+        if self.start_at and self.end_at and self.end_at < self.start_at:
+            raise ValueError("end_at must not be before start_at")
+        return self
+
+
+class EventOverrideRead(_FromORM):
+    id: int
+    event_id: int
+    occurrence_start: datetime
+    canceled: bool
+    start_at: datetime | None
+    end_at: datetime | None
+    title: str | None
+    description: str | None
+    location: str | None
+    created_at: datetime
+
+    @field_serializer("occurrence_start", "created_at")
+    def _serialize_dt(self, value: datetime) -> str:
+        return _as_utc_iso(value)
+
+    @field_serializer("start_at", "end_at")
+    def _serialize_opt_dt(self, value: datetime | None) -> str | None:
+        return _as_utc_iso(value) if value is not None else None

@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from dateutil.rrule import rrulestr
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.calendar import Event, Reminder
+from app.models.calendar import Event, EventOverride, Reminder
 from app.models.job_tracker import Application
 from app.models.projects import Project, Task
-from app.schemas.calendar import EventCreate, EventUpdate, ReminderCreate
+from app.schemas.calendar import (
+    EventCreate,
+    EventOverrideCreate,
+    EventUpdate,
+    ReminderCreate,
+)
 
 MAX_RANGE_DAYS = 400
 MAX_OCCURRENCES = 750
@@ -66,7 +71,7 @@ def _event_query(user_id: int) -> Select[tuple[Event]]:
     return (
         select(Event)
         .where(Event.user_id == user_id)
-        .options(selectinload(Event.reminders))
+        .options(selectinload(Event.reminders), selectinload(Event.overrides))
     )
 
 
@@ -173,18 +178,38 @@ class Occurrence:
     location: str | None
     all_day: bool
     is_recurring: bool
+    occurrence_start: datetime
+    overridden: bool
     start_at: datetime
     end_at: datetime
 
 
-def _occurrence(event: Event, start: datetime, end: datetime, *, recurring: bool) -> Occurrence:
+def _occurrence(
+    event: Event,
+    origin: datetime,
+    start: datetime,
+    end: datetime,
+    *,
+    recurring: bool,
+    override: EventOverride | None = None,
+) -> Occurrence:
     return Occurrence(
         event_id=event.id,
-        title=event.title,
-        description=event.description,
-        location=event.location,
+        title=(override.title if override and override.title else event.title),
+        description=(
+            override.description
+            if override and override.description is not None
+            else event.description
+        ),
+        location=(
+            override.location
+            if override and override.location is not None
+            else event.location
+        ),
         all_day=event.all_day,
         is_recurring=recurring,
+        occurrence_start=origin,
+        overridden=override is not None,
         start_at=start,
         end_at=end,
     )
@@ -200,7 +225,9 @@ def expand_occurrences(
     if (end - start).days > MAX_RANGE_DAYS:
         raise LookupError(f"range too large (max {MAX_RANGE_DAYS} days)")
 
-    events = db.scalars(select(Event).where(Event.user_id == user_id)).all()
+    events = db.scalars(
+        select(Event).where(Event.user_id == user_id).options(selectinload(Event.overrides))
+    ).all()
     out: list[Occurrence] = []
 
     for event in events:
@@ -208,20 +235,115 @@ def expand_occurrences(
 
         if not event.recurrence:
             if event.start_at < end and event.end_at > start:
-                out.append(_occurrence(event, event.start_at, event.end_at, recurring=False))
+                out.append(
+                    _occurrence(
+                        event, event.start_at, event.start_at, event.end_at, recurring=False
+                    )
+                )
             continue
+
+        overrides = {ov.occurrence_start: ov for ov in event.overrides}
+        seen: set[datetime] = set()
 
         rule = rrulestr(event.recurrence, dtstart=_aware(event.start_at))
         # An instance [s, s+duration] overlaps [start, end] iff s in (start - duration, end).
         lo = _aware(start - duration)
         hi = _aware(end)
         for occ_start_aware in rule.between(lo, hi, inc=True):
-            occ_start = occ_start_aware.replace(tzinfo=None)
-            occ_end = occ_start + duration
-            if occ_start < end and occ_end > start:
-                out.append(_occurrence(event, occ_start, occ_end, recurring=True))
+            origin = occ_start_aware.replace(tzinfo=None)
+            seen.add(origin)
+            occ = _materialize(event, origin, duration, overrides.get(origin))
+            if occ and occ.start_at < end and occ.end_at > start:
+                out.append(occ)
             if len(out) >= MAX_OCCURRENCES:
                 break
 
+        # An override can also move an instance whose *original* time fell
+        # outside the window into it.
+        for origin, ov in overrides.items():
+            if origin in seen or ov.canceled:
+                continue
+            occ = _materialize(event, origin, duration, ov)
+            if occ and occ.start_at < end and occ.end_at > start:
+                out.append(occ)
+
     out.sort(key=lambda occurrence: occurrence.start_at)
     return out[:MAX_OCCURRENCES]
+
+
+def _materialize(
+    event: Event, origin: datetime, duration: timedelta, override: EventOverride | None
+) -> Occurrence | None:
+    if override and override.canceled:
+        return None
+    eff_start = override.start_at if override and override.start_at else origin
+    eff_end = override.end_at if override and override.end_at else eff_start + duration
+    return _occurrence(
+        event, origin, eff_start, eff_end, recurring=True, override=override
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Per-occurrence overrides
+# --------------------------------------------------------------------------- #
+def _occurrence_exists(event: Event, occurrence_start: datetime) -> bool:
+    if not event.recurrence:
+        return False
+    rule = rrulestr(event.recurrence, dtstart=_aware(event.start_at))
+    target = _aware(occurrence_start)
+    return bool(rule.between(target, target, inc=True))
+
+
+def list_overrides(db: Session, user_id: int, event_id: int) -> Sequence[EventOverride]:
+    return db.scalars(
+        select(EventOverride)
+        .where(EventOverride.user_id == user_id, EventOverride.event_id == event_id)
+        .order_by(EventOverride.occurrence_start)
+    ).all()
+
+
+def get_override(db: Session, user_id: int, override_id: int) -> EventOverride | None:
+    return db.scalars(
+        select(EventOverride).where(
+            EventOverride.id == override_id, EventOverride.user_id == user_id
+        )
+    ).first()
+
+
+def upsert_override(
+    db: Session, user_id: int, event: Event, data: EventOverrideCreate
+) -> EventOverride:
+    origin = _to_naive_utc(data.occurrence_start)
+    if not _occurrence_exists(event, origin):
+        raise LookupError("occurrence_start is not an instance of this event's recurrence")
+
+    fields = data.model_dump(exclude={"occurrence_start"})
+    for key in ("start_at", "end_at"):
+        if fields.get(key) is not None:
+            fields[key] = _to_naive_utc(fields[key])
+
+    existing = db.scalars(
+        select(EventOverride).where(
+            EventOverride.event_id == event.id,
+            EventOverride.occurrence_start == origin,
+        )
+    ).first()
+    if existing is not None:
+        for key, value in fields.items():
+            setattr(existing, key, value)
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    override = EventOverride(
+        user_id=user_id, event_id=event.id, occurrence_start=origin, **fields
+    )
+    db.add(override)
+    db.commit()
+    db.refresh(override)
+    return override
+
+
+def delete_override(db: Session, override: EventOverride) -> None:
+    db.delete(override)
+    db.commit()

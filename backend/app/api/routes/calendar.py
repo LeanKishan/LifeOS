@@ -6,9 +6,11 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbSession
-from app.models.calendar import Event, Reminder
+from app.models.calendar import Event, EventOverride, Reminder
 from app.schemas.calendar import (
     EventCreate,
+    EventOverrideCreate,
+    EventOverrideRead,
     EventRead,
     EventUpdate,
     OccurrenceRead,
@@ -40,6 +42,13 @@ def _reminder_or_404(db: DbSession, user: CurrentUser, reminder_id: int) -> Remi
     if reminder is None:
         raise _404("Reminder")
     return reminder
+
+
+def _override_or_404(db: DbSession, user: CurrentUser, override_id: int) -> EventOverride:
+    override = svc.get_override(db, user.id, override_id)
+    if override is None:
+        raise _404("Override")
+    return override
 
 
 # --------------------------------------------------------------------------- #
@@ -112,3 +121,35 @@ def add_reminder(
 @router.delete("/reminders/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_reminder(reminder_id: int, user: CurrentUser, db: DbSession) -> None:
     svc.delete_reminder(db, _reminder_or_404(db, user, reminder_id))
+
+
+# --------------------------------------------------------------------------- #
+# Per-occurrence overrides
+# --------------------------------------------------------------------------- #
+@router.get(
+    "/events/{event_id}/overrides", response_model=list[EventOverrideRead]
+)
+def list_overrides(
+    event_id: int, user: CurrentUser, db: DbSession
+) -> Sequence[EventOverride]:
+    _event_or_404(db, user, event_id)
+    return svc.list_overrides(db, user.id, event_id)
+
+
+@router.put("/events/{event_id}/overrides", response_model=EventOverrideRead)
+def upsert_override(
+    event_id: int, data: EventOverrideCreate, user: CurrentUser, db: DbSession
+) -> EventOverride:
+    """Move, edit or cancel a single occurrence. Idempotent per
+    ``occurrence_start`` — the same instance is upserted, not duplicated."""
+    event = _event_or_404(db, user, event_id)
+    try:
+        return svc.upsert_override(db, user.id, event, data)
+    except LookupError as exc:
+        raise _422(str(exc)) from exc
+
+
+@router.delete("/overrides/{override_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_override(override_id: int, user: CurrentUser, db: DbSession) -> None:
+    """Revert that instance to whatever the recurrence rule says."""
+    svc.delete_override(db, _override_or_404(db, user, override_id))

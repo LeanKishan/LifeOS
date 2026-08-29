@@ -5,7 +5,7 @@ before Alembic autogenerate runs.
 """
 
 from app.models.base import Base
-from app.models.calendar import Event, Reminder
+from app.models.calendar import Event, EventOverride, Reminder
 from app.models.finance import (
     Account,
     Bill,
@@ -52,6 +52,7 @@ __all__ = [
     "Contact",
     "Course",
     "Event",
+    "EventOverride",
     "Flashcard",
     "Interview",
     "Label",

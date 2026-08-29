@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -43,6 +43,45 @@ class Event(TimestampMixin, Base):
         cascade="all, delete-orphan",
         order_by="Reminder.minutes_before",
     )
+    overrides: Mapped[list[EventOverride]] = relationship(
+        back_populates="event",
+        cascade="all, delete-orphan",
+        order_by="EventOverride.occurrence_start",
+    )
+
+
+class EventOverride(TimestampMixin, Base):
+    """A single occurrence of a recurring event, changed or cancelled.
+
+    Keyed by ``occurrence_start`` — the *original* start the recurrence rule
+    produced (the iCalendar RECURRENCE-ID). NULL override columns inherit from
+    the parent event.
+    """
+
+    __tablename__ = "event_overrides"
+    __table_args__ = (
+        UniqueConstraint("event_id", "occurrence_start", name="uq_override_instance"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("events.id", ondelete="CASCADE"), index=True
+    )
+
+    # Naive UTC, matches Event.start_at.
+    occurrence_start: Mapped[datetime] = mapped_column(DateTime, index=True)
+    canceled: Mapped[bool] = mapped_column(default=False)
+
+    start_at: Mapped[datetime | None] = mapped_column(DateTime)
+    end_at: Mapped[datetime | None] = mapped_column(DateTime)
+    title: Mapped[str | None] = mapped_column(String(300))
+    description: Mapped[str | None] = mapped_column(Text)
+    location: Mapped[str | None] = mapped_column(String(300))
+
+    event: Mapped[Event] = relationship(back_populates="overrides")
 
 
 class Reminder(TimestampMixin, Base):
