@@ -540,3 +540,31 @@ route hrefs typecheck without the `expo start`-generated `.expo/types`.
 
 **Deferred.** Live updates (the WS hook isn't ported); push notifications;
 offline cache persistence; the other feature modules; EAS build/submit config.
+
+## ADR-0026 — Calendar: overrides as sparse exception rows, not materialised instances
+
+**Decision.** A recurring event stays one `Event` + an RRULE string. To change or
+drop a single instance, `EventOverride` stores one row per exception, keyed by
+`(event_id, occurrence_start)` where `occurrence_start` is the *original*
+rule-generated start — iCalendar's `RECURRENCE-ID`. NULL override columns inherit
+from the parent; `canceled` drops the instance. `expand_occurrences` builds a
+`{occurrence_start: override}` map per event and, per generated instance, cancels
+/ substitutes accordingly; it then sweeps overrides whose original time fell
+outside the query window but whose new time is inside. `PUT .../overrides` upserts
+(idempotent per instance), `DELETE /overrides/{id}` reverts.
+
+**Why not materialise the series.** Expanding a recurring event into N stored
+rows on creation makes "edit this one" trivial but turns "edit the series",
+"extend the recurrence", and storage into problems, and it's how most calendar
+schemas rot. Keeping the rule authoritative and overrides sparse matches iCalendar
+and means an untouched series is still a single row.
+
+**Why address by `occurrence_start`, not an index.** An index shifts when the
+rule or `dtstart` changes; the original datetime is stable and is exactly what
+`dateutil.rrule.between(t, t)` can validate against, so a bogus
+`occurrence_start` is rejected at write time.
+
+**UI.** The event modal gains a "this occurrence" panel for recurring instances
+(reschedule / skip / restore-to-series); the series form is unchanged. Occurrences
+carry `occurrence_start` + `overridden` so the month/week views can mark a changed
+instance.

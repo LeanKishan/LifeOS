@@ -77,7 +77,9 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
       repeat presets, dashboard "Upcoming" list
 - [x] Tests: 15 — time/RRULE validation, foreign link, single/partial overlap,
       weekly COUNT, DAILY UNTIL, window clipping, duration, sort, range cap
-- [ ] Per-occurrence overrides (move/cancel one instance) → later
+- [x] Per-occurrence overrides (move / edit / cancel one instance) — `EventOverride`
+      model (M16), `PUT/GET .../overrides` + `DELETE /overrides/{id}`, expansion
+      applies them; calendar UI has a "this occurrence" panel (ADR-0026)
 - [ ] Non-UTC display / user timezone setting → later
 
 ## M5 — Finance
