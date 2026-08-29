@@ -17,9 +17,15 @@ class UserRead(BaseModel):
     id: int
     email: EmailStr
     full_name: str | None
+    timezone: str
     is_active: bool
     is_superuser: bool
     created_at: datetime
+
+
+class UserUpdate(BaseModel):
+    full_name: str | None = Field(default=None, max_length=255)
+    timezone: str | None = Field(default=None, max_length=64)
 
 
 class Token(BaseModel):

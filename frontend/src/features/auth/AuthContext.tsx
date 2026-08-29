@@ -15,6 +15,7 @@ import {
   logoutRequest,
   meRequest,
   registerRequest,
+  updateMeRequest,
   type AuthUser,
 } from "@/features/auth/api";
 
@@ -27,6 +28,7 @@ interface AuthContextValue {
   register: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => Promise<void>;
   logoutEverywhere: () => Promise<void>;
+  updateProfile: (input: { full_name?: string; timezone?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -114,9 +116,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
   }, [clearSession]);
 
+  const updateProfile = useCallback(
+    async (input: { full_name?: string; timezone?: string }) => {
+      setUser(await updateMeRequest(input));
+    },
+    [],
+  );
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, register, logout, logoutEverywhere }),
-    [user, status, login, register, logout, logoutEverywhere],
+    () => ({ user, status, login, register, logout, logoutEverywhere, updateProfile }),
+    [user, status, login, register, logout, logoutEverywhere, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,7 +4,7 @@ import csv
 import io
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
@@ -12,10 +12,12 @@ from reportlab.pdfgen import canvas
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core import tz
 from app.models.finance import Category, Transaction, TransactionKind
 from app.models.job_tracker import Application, ApplicationStatus
 from app.models.learning import Flashcard, Lesson
 from app.models.projects import Task, TaskPriority
+from app.models.user import User
 from app.schemas.analytics import (
     AnalyticsOverview,
     DateRange,
@@ -32,14 +34,10 @@ MAX_RANGE_DAYS = 366
 DEFAULT_RANGE_DAYS = 90
 
 
-def _utc_today() -> date:
-    """Timestamps are stored as naive UTC, so "today" must be UTC too — a
-    local `date.today()` drops or double-counts a day near the UTC boundary."""
-    return datetime.now(UTC).date()
-
-
-def resolve_range(date_from: date | None, date_to: date | None) -> tuple[date, date]:
-    end = date_to or _utc_today()
+def resolve_range(
+    date_from: date | None, date_to: date | None, tz_name: str = "UTC"
+) -> tuple[date, date]:
+    end = date_to or tz.today(tz_name)
     start = date_from or (end - timedelta(days=DEFAULT_RANGE_DAYS))
     if end < start:
         raise LookupError("`to` must not be before `from`")
@@ -62,7 +60,9 @@ def _weekly(points: Iterable[tuple[date, int]]) -> list[WeekPoint]:
 # --------------------------------------------------------------------------- #
 # Sections
 # --------------------------------------------------------------------------- #
-def _productivity(db: Session, user_id: int, start: date, end: date) -> Productivity:
+def _productivity(
+    db: Session, user_id: int, start: date, end: date, tz_name: str
+) -> Productivity:
     tasks = list(db.scalars(select(Task).where(Task.user_id == user_id)))
     total = len(tasks)
     done = [t for t in tasks if t.done]
@@ -72,15 +72,18 @@ def _productivity(db: Session, user_id: int, start: date, end: date) -> Producti
         if not task.done:
             by_priority[task.priority.value] += 1
 
-    today = _utc_today()
+    today = tz.today(tz_name)
     overdue = sum(
         1 for t in tasks if not t.done and t.due_on is not None and t.due_on < today
     )
 
+    def local(dt: datetime) -> date:
+        return tz.local_date(dt, tz_name)
+
     done_in_range = [
         t
         for t in done
-        if t.completed_at is not None and start <= t.completed_at.date() <= end
+        if t.completed_at is not None and start <= local(t.completed_at) <= end
     ]
     cycle_days = [
         (t.completed_at - t.created_at).days
@@ -97,7 +100,7 @@ def _productivity(db: Session, user_id: int, start: date, end: date) -> Producti
         overdue=overdue,
         by_priority=by_priority,
         done_by_week=_weekly(
-            (t.completed_at.date(), 1) for t in done_in_range if t.completed_at
+            (local(t.completed_at), 1) for t in done_in_range if t.completed_at
         ),
     )
 
@@ -145,7 +148,9 @@ def _finance(db: Session, user_id: int, start: date, end: date) -> FinanceTrend:
     return FinanceTrend(by_month=by_month, top_categories=top)
 
 
-def _learning(db: Session, user_id: int, start: date, end: date) -> LearningStats:
+def _learning(
+    db: Session, user_id: int, start: date, end: date, tz_name: str
+) -> LearningStats:
     intervals = list(
         db.scalars(select(Flashcard.interval_days).where(Flashcard.user_id == user_id))
     )
@@ -160,7 +165,7 @@ def _learning(db: Session, user_id: int, start: date, end: date) -> LearningStat
         else:
             maturity["mature"] += 1
 
-    week_ago = _utc_today() - timedelta(days=7)
+    week_ago = tz.today(tz_name) - timedelta(days=7)
     reviews_last_7d = len(
         list(
             db.scalars(
@@ -190,7 +195,9 @@ def _learning(db: Session, user_id: int, start: date, end: date) -> LearningStat
     )
 
 
-def _job_search(db: Session, user_id: int, start: date, end: date) -> JobSearchStats:
+def _job_search(
+    db: Session, user_id: int, start: date, end: date, tz_name: str
+) -> JobSearchStats:
     funnel = {s.value: 0 for s in ApplicationStatus}
     status_rows = db.execute(
         select(Application.status, func.count())
@@ -200,31 +207,37 @@ def _job_search(db: Session, user_id: int, start: date, end: date) -> JobSearchS
     for status_value, count in status_rows:
         funnel[ApplicationStatus(status_value).value] = int(count or 0)
 
+    # Widen the fetch a day either side, then keep only rows whose *local* date
+    # lands in the window.
+    lo = datetime.combine(start - timedelta(days=1), datetime.min.time())
+    hi = datetime.combine(end + timedelta(days=1), datetime.max.time())
     created = db.scalars(
         select(Application.created_at).where(
             Application.user_id == user_id,
-            Application.created_at >= datetime.combine(start, datetime.min.time()),
-            Application.created_at
-            <= datetime.combine(end, datetime.max.time()),
+            Application.created_at >= lo,
+            Application.created_at <= hi,
         )
     ).all()
+    local_days = [tz.local_date(c, tz_name) for c in created]
 
     return JobSearchStats(
         funnel=funnel,
-        applications_by_week=_weekly((c.date(), 1) for c in created),
+        applications_by_week=_weekly((d, 1) for d in local_days if start <= d <= end),
     )
 
 
 def overview(
     db: Session, user_id: int, date_from: date | None, date_to: date | None
 ) -> AnalyticsOverview:
-    start, end = resolve_range(date_from, date_to)
+    user = db.get(User, user_id)
+    tz_name = user.timezone if user else "UTC"
+    start, end = resolve_range(date_from, date_to, tz_name)
     return AnalyticsOverview(
         range=DateRange(date_from=start, date_to=end),
-        productivity=_productivity(db, user_id, start, end),
+        productivity=_productivity(db, user_id, start, end, tz_name),
         finance=_finance(db, user_id, start, end),
-        learning=_learning(db, user_id, start, end),
-        job_search=_job_search(db, user_id, start, end),
+        learning=_learning(db, user_id, start, end, tz_name),
+        job_search=_job_search(db, user_id, start, end, tz_name),
     )
 
 

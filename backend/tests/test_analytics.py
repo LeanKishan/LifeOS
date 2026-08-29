@@ -169,6 +169,21 @@ def test_overview_is_user_scoped(
     assert client.get(OVERVIEW, headers=bob).json()["productivity"]["tasks_total"] == 0
 
 
+def test_range_end_follows_the_users_timezone(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    from app.core import tz
+
+    default_end = client.get(OVERVIEW, headers=auth_headers).json()["range"]["date_to"]
+    assert default_end == tz.today("UTC").isoformat()
+
+    client.patch(
+        "/api/auth/me", json={"timezone": "Pacific/Kiritimati"}, headers=auth_headers
+    )  # UTC+14
+    shifted_end = client.get(OVERVIEW, headers=auth_headers).json()["range"]["date_to"]
+    assert shifted_end == tz.today("Pacific/Kiritimati").isoformat()
+
+
 def test_exports(client: TestClient, auth_headers: dict[str, str]) -> None:
     project = board(client, auth_headers)
     finish_task(client, auth_headers, add_task(client, auth_headers, project, "done one"))

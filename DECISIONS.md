@@ -597,3 +597,31 @@ explain, and now there are two short ones.
 stream in browsers); a 401 falls back once to the axios call so the refresh
 interceptor can run. The chat renders deltas into a trailing bubble with a
 blinking caret; tool chips appear as their events arrive.
+
+## ADR-0028 — User timezone: a per-user IANA name, applied only at day boundaries
+
+**Decision.** `User.timezone` holds an IANA name (default `"UTC"`), settable via
+`PATCH /auth/me` (validated with `zoneinfo.ZoneInfo`, 422 on a bad name).
+Storage stays naive UTC (ADR-0014) — nothing about how timestamps are written
+changes. The zone is consulted only where a *calendar day* matters:
+
+- **Analytics** — `resolve_range`'s default end is "today" in the user's zone;
+  `_productivity` (overdue cutoff, completed-in-range filter, done-per-week
+  buckets) and `_job_search` (applications-per-week) convert each stored
+  timestamp with `tz.local_date(dt, name)` before bucketing; `_learning`'s
+  "reviews in the last 7 days" counts from the user's today. `_finance` and
+  lesson completions are unaffected — those columns are user-entered `date`s
+  with no time, so they're already zone-neutral.
+- **Assistant** — `SYSTEM_PROMPT`'s "Today's date is …" resolves in the user's
+  zone, so "add a task for tomorrow" lands on the right day.
+
+**Why only day boundaries.** The calendar already renders in the viewer's
+browser zone (`new Date(iso)`), and money/lessons are dateless. The only place
+the server's notion of "which day" leaked was the analytics rollups (the M16
+`_utc_today` fix was the same bug, one layer down). Converting every timestamp
+everywhere would be churn for no visible gain.
+
+**Deferred.** The daily-digest Celery beat still fires at 07:00 **UTC** for
+everyone. Per-user local send time means the beat waking every 15 min and
+checking each user's local clock — a real change, and low value until there are
+real users.

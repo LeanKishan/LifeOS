@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import CurrentUser, DbSession, RedisDep, TokenPayload
 from app.core.ratelimit import rate_limited
 from app.core.security import create_access_token, create_refresh_token, decode_token
-from app.schemas.user import RefreshRequest, Token, UserCreate, UserRead
+from app.schemas.user import RefreshRequest, Token, UserCreate, UserRead, UserUpdate
 from app.services import users as user_service
 from app.services.tokens import (
     bump_token_generation,
@@ -113,3 +113,14 @@ def logout_all(payload: TokenPayload, client: RedisDep) -> None:
 @router.get("/me", response_model=UserRead)
 def me(user: CurrentUser) -> UserRead:
     return UserRead.model_validate(user)
+
+
+@router.patch("/me", response_model=UserRead)
+def update_me(data: UserUpdate, user: CurrentUser, db: DbSession) -> UserRead:
+    try:
+        updated = user_service.update_user(db, user, data)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    return UserRead.model_validate(updated)

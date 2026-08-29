@@ -25,6 +25,7 @@ import LoginPage from "@/pages/LoginPage";
 import ProjectBoardPage from "@/pages/ProjectBoardPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import RegisterPage from "@/pages/RegisterPage";
+import SettingsPage from "@/pages/SettingsPage";
 
 interface HealthResponse {
   status: string;
@@ -55,6 +56,7 @@ const NAV = [
   { to: "/learning", label: "Learning" },
   { to: "/analytics", label: "Analytics" },
   { to: "/coach", label: "Assistant" },
+  { to: "/settings", label: "Settings" },
 ];
 
 function Header({ live }: { live: boolean }) {
@@ -354,6 +356,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CoachPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

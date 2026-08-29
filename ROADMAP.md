@@ -80,7 +80,10 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
 - [x] Per-occurrence overrides (move / edit / cancel one instance) — `EventOverride`
       model (M16), `PUT/GET .../overrides` + `DELETE /overrides/{id}`, expansion
       applies them; calendar UI has a "this occurrence" panel (ADR-0026)
-- [ ] Non-UTC display / user timezone setting → later
+- [x] User timezone setting (M19) — `User.timezone` (IANA), `PATCH /auth/me`,
+      Settings page; analytics day/week/month boundaries + the assistant's
+      "today" resolve in the user's zone. ADR-0028
+      (per-user digest send time still deferred)
 
 ## M5 — Finance
 - [x] Models: Account, Category (typed), Transaction (integer cents), Budget
@@ -180,7 +183,8 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` planned
       CSV + PDF download; task "done" checkbox in the Kanban modal + card
 - [x] Tests: 9 — completion + cycle, overdue, monthly net, maturity, funnel,
       range 422, user scoping, CSV/PDF
-- [ ] Richer charts (stacked, trend lines) → polish; dataviz pass deferred
+- [x] Richer charts (M18) — inline-SVG TrendLine / Donut / StackedBar, grouped
+      into Productivity / Finance / Learning / Job-search sections
 
 ## M12 — Security pass
 - [x] Security headers on every response (nosniff, DENY, no-referrer,

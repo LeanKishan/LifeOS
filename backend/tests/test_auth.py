@@ -69,7 +69,31 @@ def test_me_returns_current_user(client: TestClient) -> None:
     token = login(client).json()["access_token"]
     resp = client.get(ME, headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
-    assert resp.json()["email"] == EMAIL
+    body = resp.json()
+    assert body["email"] == EMAIL
+    assert body["timezone"] == "UTC"  # default
+
+
+def test_patch_me_updates_timezone(client: TestClient) -> None:
+    register(client)
+    token = login(client).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp = client.patch(ME, json={"timezone": "America/Chicago"}, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["timezone"] == "America/Chicago"
+    assert client.get(ME, headers=headers).json()["timezone"] == "America/Chicago"
+
+
+def test_patch_me_rejects_a_bogus_timezone(client: TestClient) -> None:
+    register(client)
+    token = login(client).json()["access_token"]
+    resp = client.patch(
+        ME,
+        json={"timezone": "Mars/Olympus_Mons"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 422
 
 
 def test_refresh_token_is_not_accepted_as_access(client: TestClient) -> None:

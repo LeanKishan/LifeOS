@@ -4,6 +4,7 @@ export interface AuthUser {
   id: number;
   email: string;
   full_name: string | null;
+  timezone: string;
   is_active: boolean;
   is_superuser: boolean;
   created_at: string;
@@ -28,6 +29,14 @@ export async function loginRequest(email: string, password: string): Promise<Tok
 
 export async function meRequest(): Promise<AuthUser> {
   const { data } = await api.get<AuthUser>("/auth/me");
+  return data;
+}
+
+export async function updateMeRequest(input: {
+  full_name?: string;
+  timezone?: string;
+}): Promise<AuthUser> {
+  const { data } = await api.patch<AuthUser>("/auth/me", input);
   return data;
 }
 

@@ -9,7 +9,9 @@ from typing import Any, cast
 from anthropic import Anthropic
 from sqlalchemy.orm import Session
 
+from app.core import tz
 from app.core.config import get_settings
+from app.models.user import User
 from app.schemas.calendar import EventCreate
 from app.schemas.finance import FinanceSummary
 from app.schemas.learning import FlashcardCreate
@@ -127,16 +129,21 @@ def ensure_configured() -> None:
     _client()
 
 
-def _base_params() -> dict[str, Any]:
+def _base_params(tz_name: str = "UTC") -> dict[str, Any]:
     settings = get_settings()
     return {
         "model": settings.assistant_model,
         "max_tokens": 8192,
         "thinking": {"type": "adaptive"},
         "output_config": {"effort": "medium"},
-        "system": SYSTEM_PROMPT.format(today=date.today().isoformat()),
+        "system": SYSTEM_PROMPT.format(today=tz.today(tz_name).isoformat()),
         "tools": TOOLS,
     }
+
+
+def _user_tz(db: Session, user_id: int) -> str:
+    user = db.get(User, user_id)
+    return user.timezone if user else "UTC"
 
 
 # --------------------------------------------------------------------------- #
@@ -265,7 +272,7 @@ def run_chat(db: Session, user_id: int, messages: list[dict[str, Any]]) -> ChatR
     client = _client()
     conversation: list[dict[str, Any]] = list(messages)
     tool_calls: list[str] = []
-    params = _base_params()
+    params = _base_params(_user_tz(db, user_id))
 
     for _ in range(MAX_TOOL_ITERATIONS):
         response = client.messages.create(**{**params, "messages": conversation})
@@ -310,7 +317,7 @@ def run_chat_stream(
     client = _client()
     conversation: list[dict[str, Any]] = list(messages)
     tool_calls: list[str] = []
-    params = _base_params()
+    params = _base_params(_user_tz(db, user_id))
 
     for _ in range(MAX_TOOL_ITERATIONS):
         with client.messages.stream(**{**params, "messages": conversation}) as stream:

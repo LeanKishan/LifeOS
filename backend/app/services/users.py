@@ -3,9 +3,10 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import tz
 from app.core.security import hash_password, verify_password
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 
 
 def get_by_email(db: Session, email: str) -> User | None:
@@ -23,6 +24,17 @@ def create_user(db: Session, data: UserCreate) -> User:
         full_name=data.full_name,
     )
     db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user(db: Session, user: User, data: UserUpdate) -> User:
+    changes = data.model_dump(exclude_unset=True)
+    if "timezone" in changes and changes["timezone"] is not None:
+        changes["timezone"] = tz.validate(changes["timezone"])
+    for field, value in changes.items():
+        setattr(user, field, value)
     db.commit()
     db.refresh(user)
     return user
