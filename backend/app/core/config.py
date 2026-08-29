@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     # Comma-separated list in the CORS_ORIGINS env var
     cors_origins: str = "http://localhost:5173"
 
+    # When set, the API also serves the built SPA from this directory (single
+    # self-contained deployment). Empty -> API only.
+    static_dir: str = ""
+
     # Hardening knobs
     max_body_bytes: int = 4 * 1024 * 1024
     global_rate_limit_per_minute: int = 600

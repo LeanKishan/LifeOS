@@ -1,13 +1,15 @@
-# Render Blueprint — deploys the whole stack from this repo.
+# Render Blueprint — one self-contained web service (the FastAPI backend also
+# serves the built React SPA), plus a managed Postgres and Redis.
 #
-#   1. Push this file to GitHub (already there if you're reading it on Render).
-#   2. Render dashboard → New → Blueprint → pick the LeanKishan/LifeOS repo.
-#   3. Approve. First deploy takes ~5 min (Docker build + migrations).
-#   4. Optional: set ANTHROPIC_API_KEY on the `lifeos-api` service to enable /coach.
+#   Render dashboard -> New -> Blueprint -> pick the LeanKishan/LifeOS repo -> Apply.
 #
-# Free tier notes: the API + web services sleep after 15 min idle and cold-start
-# in ~50s; the free Postgres and Key Value instances are wiped after 30 days.
-# Bump `plan:` to `starter` on each to keep them always-on and persistent.
+# Nothing here hardcodes a hostname: the app serves its own frontend, so whatever
+# URL Render assigns just works. First build ~6 min (SPA + Docker + migrations).
+# Optional: set ANTHROPIC_API_KEY on the web service to enable /coach.
+#
+# Free tier: the web service sleeps after 15 min idle (~50s cold start) and the
+# free Postgres is wiped after 30 days. Bump each `plan:` to `starter` for an
+# always-on, persistent deployment.
 
 databases:
   - name: lifeos-db
@@ -17,22 +19,20 @@ databases:
     postgresMajorVersion: "16"
 
 services:
-  # ---- Redis / Key Value (cache, token denylist, rate limits) --------------
   - type: keyvalue
-    name: lifeos-redis
+    name: lifeos-cache
     plan: free
     region: oregon
     ipAllowList: [] # reachable only from Render services
     maxmemoryPolicy: noeviction
 
-  # ---- FastAPI backend (Docker) ------------------------------------------
   - type: web
-    name: lifeos-api
+    name: lifeos
     runtime: docker
     plan: free
     region: oregon
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     dockerCommand: web # entrypoint: alembic upgrade head, then gunicorn
     healthCheckPath: /api/health
     autoDeploy: true
@@ -45,7 +45,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: lifeos-redis
+          name: lifeos-cache
           type: keyvalue
           property: connectionString
       - key: JWT_SECRET
@@ -62,28 +62,5 @@ services:
         value: "*"
       - key: WEB_CONCURRENCY
         value: "1"
-      - key: CORS_ORIGINS
-        value: https://lifeos-web.onrender.com
       - key: ANTHROPIC_API_KEY
         sync: false # set in the dashboard to enable the assistant
-
-  # ---- React SPA (static) ------------------------------------------------
-  - type: web
-    name: lifeos-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    pullRequestPreviewsEnabled: false
-    autoDeploy: true
-    envVars:
-      - key: VITE_API_URL
-        value: https://lifeos-api.onrender.com/api
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable

@@ -119,12 +119,15 @@ JWT_SECRET=$(openssl rand -hex 32) docker compose -f docker-compose.prod.yml up 
 ## Deploy in one click (Render)
 
 [`render.yaml`](render.yaml) is a Render Blueprint for the whole stack —
-Postgres, Redis, the Dockerised FastAPI backend (migrations run on boot), and
-the static React frontend.
+managed Postgres, managed Redis, and **one** Docker web service. That service
+builds the React SPA and serves it from the FastAPI app itself (same origin,
+`/api/*` for the API, everything else falls back to the SPA shell), so nothing
+here hardcodes a hostname — whatever URL Render assigns just works.
 
 1. **Render dashboard → New → Blueprint** and pick this repo.
-2. Approve. First build ~5 min; the backend URL is `https://lifeos-api.onrender.com`.
-3. Optional: set `ANTHROPIC_API_KEY` on the `lifeos-api` service to enable the
+2. Approve. First build ~6 min (SPA + Docker image + migrations on boot).
+3. Open the `lifeos` service's URL — that's your live app.
+4. Optional: set `ANTHROPIC_API_KEY` on the `lifeos` service to enable the
    assistant.
 
 The free tier sleeps after 15 min idle (cold start ~50s) and wipes the free

@@ -7,11 +7,13 @@ import sys
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import jwt
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
@@ -83,6 +85,14 @@ _DOCS_CSP = (
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net"
 )
 _API_CSP = "default-src 'none'; frame-ancestors 'none'"
+# When the API also serves the SPA, its HTML/asset responses need a real CSP:
+# self scripts, inline styles (React style props), and the Google Fonts hosts.
+_SPA_CSP = (
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+    "img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "script-src 'self'; connect-src 'self'"
+)
 
 
 def _route_label(request: Request) -> str:
@@ -191,7 +201,12 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         for header, value in _SECURITY_HEADERS.items():
             response.headers.setdefault(header, value)
-        csp = _DOCS_CSP if request.url.path in _DOCS_PATHS else _API_CSP
+        if request.url.path in _DOCS_PATHS:
+            csp = _DOCS_CSP
+        elif "text/html" in response.headers.get("content-type", ""):
+            csp = _SPA_CSP
+        else:
+            csp = _API_CSP
         response.headers.setdefault("Content-Security-Policy", csp)
         if settings.is_production:
             response.headers.setdefault(
@@ -247,13 +262,18 @@ def create_app() -> FastAPI:
     app.include_router(analytics.router, prefix="/api")
     app.include_router(ws.router, prefix="/api")
 
-    @app.get("/", tags=["meta"])
-    def root() -> dict[str, str]:
-        return {
-            "name": "LifeOS API",
-            "version": __version__,
-            "docs": "/docs" if docs_enabled else "disabled",
-        }
+    static_root = Path(settings.static_dir) if settings.static_dir else None
+    serving_spa = static_root is not None and (static_root / "index.html").is_file()
+
+    if not serving_spa:
+
+        @app.get("/", tags=["meta"])
+        def root() -> dict[str, str]:
+            return {
+                "name": "LifeOS API",
+                "version": __version__,
+                "docs": "/docs" if docs_enabled else "disabled",
+            }
 
     if settings.metrics_enabled:
 
@@ -261,6 +281,22 @@ def create_app() -> FastAPI:
         def metrics() -> Response:
             body, content_type = render_metrics()
             return PlainTextResponse(body, media_type=content_type)
+
+    if serving_spa and static_root is not None:
+        base = static_root.resolve()
+        assets = base / "assets"
+        if assets.is_dir():
+            app.mount("/assets", StaticFiles(directory=assets), name="spa-assets")
+
+        @app.get("/{spa_path:path}", include_in_schema=False)
+        async def spa(spa_path: str) -> FileResponse:
+            """Serve a real file if it exists, otherwise the SPA shell so the
+            client router can take over. Registered last, so every `/api/*`
+            route still wins."""
+            candidate = (base / spa_path).resolve()
+            if base in candidate.parents and candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(base / "index.html")
 
     return app
 
