@@ -1,0 +1,89 @@
+# Render Blueprint — deploys the whole stack from this repo.
+#
+#   1. Push this file to GitHub (already there if you're reading it on Render).
+#   2. Render dashboard → New → Blueprint → pick the LeanKishan/LifeOS repo.
+#   3. Approve. First deploy takes ~5 min (Docker build + migrations).
+#   4. Optional: set ANTHROPIC_API_KEY on the `lifeos-api` service to enable /coach.
+#
+# Free tier notes: the API + web services sleep after 15 min idle and cold-start
+# in ~50s; the free Postgres and Key Value instances are wiped after 30 days.
+# Bump `plan:` to `starter` on each to keep them always-on and persistent.
+
+databases:
+  - name: lifeos-db
+    plan: free
+    databaseName: lifeos
+    user: lifeos
+    postgresMajorVersion: "16"
+
+services:
+  # ---- Redis / Key Value (cache, token denylist, rate limits) --------------
+  - type: keyvalue
+    name: lifeos-redis
+    plan: free
+    region: oregon
+    ipAllowList: [] # reachable only from Render services
+    maxmemoryPolicy: noeviction
+
+  # ---- FastAPI backend (Docker) ------------------------------------------
+  - type: web
+    name: lifeos-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: web # entrypoint: alembic upgrade head, then gunicorn
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lifeos-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: lifeos-redis
+          type: keyvalue
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CELERY_EAGER
+        value: "true" # no separate worker on the free tier
+      - key: ALLOW_EAGER_CELERY
+        value: "true"
+      - key: WS_FANOUT_ENABLED
+        value: "false" # single instance
+      - key: LOG_JSON
+        value: "true"
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: CORS_ORIGINS
+        value: https://lifeos-web.onrender.com
+      - key: ANTHROPIC_API_KEY
+        sync: false # set in the dashboard to enable the assistant
+
+  # ---- React SPA (static) ------------------------------------------------
+  - type: web
+    name: lifeos-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_URL
+        value: https://lifeos-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

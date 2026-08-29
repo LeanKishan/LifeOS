@@ -50,6 +50,21 @@ def test_production_rejects_eager_celery() -> None:
         Settings(**{**PROD_OK, "celery_eager": True})
 
 
+def test_production_allows_eager_celery_with_the_escape_hatch() -> None:
+    settings = Settings(**{**PROD_OK, "celery_eager": True, "allow_eager_celery": True})
+    assert settings.is_production
+    assert settings.celery_eager
+
+
 def test_production_accepts_a_fully_hardened_config() -> None:
     settings = Settings(**PROD_OK)
     assert settings.is_production
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["postgres://u:p@h:5432/db", "postgresql://u:p@h:5432/db"],
+)
+def test_hosting_style_pg_urls_are_pinned_to_psycopg(raw: str) -> None:
+    settings = Settings(**{**PROD_OK, "database_url": raw})
+    assert settings.database_url == "postgresql+psycopg://u:p@h:5432/db"

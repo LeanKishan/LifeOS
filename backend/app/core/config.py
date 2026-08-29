@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Obviously-not-production placeholder, kept >= 32 bytes so HMAC-SHA256 is happy.
@@ -21,6 +22,10 @@ class Settings(BaseSettings):
     # Celery. Dev/tests run tasks synchronously (no broker/worker needed);
     # Compose sets celery_eager=false and points at a real Redis broker.
     celery_eager: bool = True
+    # Escape hatch: a small worker-less deploy (e.g. a free hosting tier) may
+    # legitimately run tasks inline in production. Off by default so the guard
+    # still catches a dev config shipped by mistake.
+    allow_eager_celery: bool = False
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
@@ -51,6 +56,19 @@ class Settings(BaseSettings):
     # pub/sub consumer blocks); real Redis in Compose/prod turns it on.
     ws_fanout_enabled: bool = True
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalise_pg_url(cls, value: object) -> object:
+        """Accept the `postgres://` / `postgresql://` URLs hosting providers hand
+        out and pin them to the psycopg 3 driver SQLAlchemy needs here."""
+        if not isinstance(value, str):
+            return value
+        if value.startswith("postgres://"):
+            value = "postgresql://" + value[len("postgres://") :]
+        if value.startswith("postgresql://"):
+            value = "postgresql+psycopg://" + value[len("postgresql://") :]
+        return value
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
@@ -69,8 +87,11 @@ class Settings(BaseSettings):
             problems.append("DATABASE_URL must be a real database, not the dev SQLite file")
         if self.redis_url.startswith("fakeredis"):
             problems.append("REDIS_URL must be a real Redis, not the in-process fake")
-        if self.celery_eager:
-            problems.append("CELERY_EAGER must be false so tasks run on a worker")
+        if self.celery_eager and not self.allow_eager_celery:
+            problems.append(
+                "CELERY_EAGER must be false so tasks run on a worker "
+                "(set ALLOW_EAGER_CELERY=true to override on a worker-less deploy)"
+            )
         if problems:
             raise ValueError(
                 "Unsafe configuration for ENVIRONMENT=production: " + "; ".join(problems)

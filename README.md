@@ -32,7 +32,9 @@ logs, per-request IDs, Prometheus metrics with a Grafana dashboard, optional
 Sentry, a readiness probe, and a Redis pub/sub WebSocket fan-out so live updates
 survive multiple API instances · **Mobile** — an Expo (React Native) app in
 `mobile/` sharing the API contract: auth, a dashboard, and the job tracker
-(see [mobile/README.md](mobile/README.md)).
+(see [mobile/README.md](mobile/README.md)) · **Marketing site** — a public
+landing page at `/` for signed-out visitors, and a one-click Render Blueprint
+([`render.yaml`](render.yaml)) that deploys the whole stack from this repo.
 
 ## Architecture
 
@@ -113,6 +115,21 @@ migration task, and a `gateway` that path-routes like the ALB:
 JWT_SECRET=$(openssl rand -hex 32) docker compose -f docker-compose.prod.yml up --build
 # app on http://localhost:8080
 ```
+
+## Deploy in one click (Render)
+
+[`render.yaml`](render.yaml) is a Render Blueprint for the whole stack —
+Postgres, Redis, the Dockerised FastAPI backend (migrations run on boot), and
+the static React frontend.
+
+1. **Render dashboard → New → Blueprint** and pick this repo.
+2. Approve. First build ~5 min; the backend URL is `https://lifeos-api.onrender.com`.
+3. Optional: set `ANTHROPIC_API_KEY` on the `lifeos-api` service to enable the
+   assistant.
+
+The free tier sleeps after 15 min idle (cold start ~50s) and wipes the free
+database after 30 days — bump each `plan:` to `starter` for an always-on,
+persistent deployment.
 
 ## Deploying to AWS
 

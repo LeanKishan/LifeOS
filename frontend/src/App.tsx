@@ -2,6 +2,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AppShell } from "@/components/AppShell";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Spinner } from "@/components/ui";
+import { useAuth } from "@/features/auth/AuthContext";
 import { Toaster } from "@/features/notifications/Toaster";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import CalendarPage from "@/pages/CalendarPage";
@@ -10,6 +12,7 @@ import CoursePage from "@/pages/CoursePage";
 import DashboardPage from "@/pages/DashboardPage";
 import FinancePage from "@/pages/FinancePage";
 import JobTrackerPage from "@/pages/JobTrackerPage";
+import LandingPage from "@/pages/LandingPage";
 import LearningPage from "@/pages/LearningPage";
 import LoginPage from "@/pages/LoginPage";
 import ProjectBoardPage from "@/pages/ProjectBoardPage";
@@ -21,9 +24,9 @@ const protect = (el: React.ReactNode) => <ProtectedRoute>{el}</ProtectedRoute>;
 
 export default function App() {
   const { pathname } = useLocation();
-  const isAuthRoute = pathname === "/login" || pathname === "/register";
+  const { status } = useAuth();
 
-  if (isAuthRoute) {
+  if (pathname === "/login" || pathname === "/register") {
     return (
       <>
         <Toaster />
@@ -34,6 +37,18 @@ export default function App() {
         </Routes>
       </>
     );
+  }
+
+  // Public marketing site at the root for visitors who aren't signed in.
+  if (pathname === "/" && status !== "authenticated") {
+    if (status === "loading") {
+      return (
+        <div className="grid min-h-dvh place-items-center">
+          <Spinner className="h-6 w-6" />
+        </div>
+      );
+    }
+    return <LandingPage />;
   }
 
   return (
